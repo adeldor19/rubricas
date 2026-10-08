@@ -323,7 +323,7 @@ function setup() {
   $("#exampleBtn").onclick=()=>{$("#csvInput").value=EXAMPLE_CSV;$("#parseStatus").textContent="Ejemplo cargado."};
   $("#csvInput").oninput=()=>{try{$("#parseStatus").textContent="CSV válido · "+parseCSV($("#csvInput").value).length+" preguntas detectadas"}catch{$("#parseStatus").textContent=$("#csvInput").value.trim()?"Revisa el formato del CSV.":"Esperando CSV…"}};
   $("#resetBtn").onclick=()=>{if(state.rubric.length&&!confirm("¿Empezar una nueva rúbrica? Se borrará la sesión de este navegador."))return;localStorage.removeItem("rubricas-app-v3");location.reload()};
-  document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{if(state.rubric.length)view(b.dataset.view)});
+  document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{if(b.dataset.view==="promptView" || state.rubric.length)view(b.dataset.view)});
   $("#addStudentBtn").onclick=()=>{$("#studentAddBox").classList.remove("hidden");$("#newStudentName").focus()};
   $("#confirmStudentBtn").onclick=()=>{addStudent($("#newStudentName").value);$("#newStudentName").value="";$("#studentAddBox").classList.add("hidden")};
   $("#newStudentName").onkeydown=e=>{if(e.key==="Enter")$("#confirmStudentBtn").click()};
