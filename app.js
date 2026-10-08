@@ -276,14 +276,23 @@ function printStudentRubric() {
   openPrint("<div class='print-header'><div><h1>" + (state.activity ? escapeHTML(state.activity) : "Rúbrica de evaluación") + "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) + " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") + "</p></div><div class='print-brand'>ProfeAlbertoD</div></div><div class='print-grade'><div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) + "</strong></div><div><span>NOTA</span><strong>" + format(grade) + " / 10</strong></div><div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" + rows + "</tbody></table><div class='print-footer'>Puntuación: <strong>" + format(t.got) + " / " + format(t.max) + "</strong> &nbsp;&nbsp; · &nbsp;&nbsp; Nota: <strong>" + format(grade) + " / 10</strong></div>", "student");
 }
 function openPrint(content, type) {
-  let area = document.getElementById("printArea");
-  if (!area) { area = document.createElement("div"); area.id = "printArea"; document.body.appendChild(area); }
-  area.innerHTML = content;
-  document.body.classList.add("printing-" + type);
+  const win = window.open("", "_blank", "width=1200,height=800");
+  if (!win) {
+    notify("El navegador ha bloqueado la ventana de impresión. Permite ventanas emergentes para este sitio.");
+    return;
+  }
+  win.document.open();
+  win.document.write("<!doctype html><html lang='es'><head><meta charset='utf-8'><title>Rúbrica · ProfeAlbertoD</title><style>" +
+    "@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{margin:0;color:#111;background:#fff;font-family:Arial,sans-serif}" +
+    ".print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:10px}.print-header h1{font-size:20px;margin:0 0 5px}.print-header p{font-size:10px;margin:0}.print-brand{font-weight:800;font-size:11px}" +
+    ".print-rubric{width:100%;border-collapse:collapse;font-size:7.5px;table-layout:fixed}.print-rubric th,.print-rubric td{border:1px solid #777;padding:4px;vertical-align:top;line-height:1.25}.print-rubric th{background:#eee;text-align:center;font-weight:800}.print-rubric th:nth-child(1){width:8%}.print-rubric th:nth-child(2){width:17%}.print-rubric th:nth-child(n+3){width:15%}.print-rubric small{font-size:7px;color:#444}.print-rubric tr{break-inside:avoid}.selected-print{background:#eee;font-weight:800}.print-obtained{text-align:center;font-weight:800}" +
+    ".print-grade{display:flex;gap:12px;margin:8px 0}.print-grade>div{border:1px solid #777;padding:7px 12px;min-width:130px}.print-grade span{display:block;font-size:7px;font-weight:800;text-transform:uppercase}.print-grade strong{display:block;font-size:17px;margin-top:2px}.print-footer{margin-top:10px;font-size:10px;border-top:2px solid #111;padding-top:7px}" +
+    "</style></head><body>" + content + "</body></html>");
+  win.document.close();
+  win.focus();
   setTimeout(() => {
-    window.print();
-    setTimeout(() => { document.body.classList.remove("printing-" + type); area.innerHTML = ""; }, 500);
-  }, 80);
+    win.print();
+  }, 350);
 }
 function downloadJSON() {
   download("rubricas_sesion.json",JSON.stringify({version:3,exportedAt:new Date().toISOString(),csv:$("#csvInput").value,rubric:state.rubric,students:state.students,active:state.active,group:state.group,activity:state.activity},null,2),"application/json;charset=utf-8");
@@ -320,6 +329,5 @@ function setup() {
   $("#resultsBtn").onclick=()=>{state.mode="results";renderEvaluation()};
   $("#groupName").oninput=e=>{state.group=e.target.value;save()};
   $("#activityName").oninput=e=>{state.activity=e.target.value;save()};
-  $("#printBtn").onclick=()=>window.print();
 }
 setup(); restore();
