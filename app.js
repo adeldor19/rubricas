@@ -73,7 +73,12 @@ function grouped() {
   });
   return result;
 }
-function competencyResults(student) {\n  const sel = selections(student), groups = new Map();\n  state.rubric.forEach(q => { const name = q.competency || q.criterion || "Sin competencia"; if (!groups.has(name)) groups.set(name, []); groups.get(name).push(q); });\n  return [...groups].map(([name, items]) => { const max = items.reduce((s,q)=>s+q.max,0); const got = items.reduce((s,q)=>s+(sel.get(q.id)?.points||0),0); return {name,max,got,pct:max?got/max*100:0,evaluated:items.filter(q=>sel.has(q.id)).length,total:items.length}; });\n}\nfunction totals(student) {
+function competencyResults(student) {
+  const sel = selections(student), groups = new Map();
+  state.rubric.forEach(q => { const name = q.competency || q.criterion || "Sin competencia"; if (!groups.has(name)) groups.set(name, []); groups.get(name).push(q); });
+  return [...groups].map(([name, items]) => { const max = items.reduce((s,q)=>s+q.max,0); const got = items.reduce((s,q)=>s+(sel.get(q.id)?.points||0),0); return {name,max,got,pct:max?got/max*100:0,evaluated:items.filter(q=>sel.has(q.id)).length,total:items.length}; });
+}
+function totals(student) {
   const sel = selections(student);
   const max = state.rubric.reduce((a, q) => a + q.max, 0);
   const got = state.rubric.reduce((a, q) => a + (sel.get(q.id)?.points || 0), 0);
