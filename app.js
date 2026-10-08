@@ -4,8 +4,6 @@ CE1.1;P2. Requisitos y restricciones;Identifica requisitos y restricciones del s
 
 const $ = (s) => document.querySelector(s);
 const state = { rubric: [], students: [], active: null, group: "", activity: "", mode: "full", quick: 0 };
-const RUBRIC_PROMPT = "Genera una rúbrica compatible con esta aplicación. Devuelve EXCLUSIVAMENTE un CSV separado por ; y sin Markdown. Cabecera EXACTA: Criterio;Pregunta;Aspecto evaluado;Nivel insuficiente (0%);Puntos 0%;Nivel básico (25%);Puntos 25%;Nivel adecuado (50%);Puntos 50%;Nivel notable (75%);Puntos 75%;Nivel excelente (100%);Puntos 100%;Máximo;Puntuación obtenida. Cada fila es una pregunta evaluable. Usa exactamente los niveles 0%, 25%, 50%, 75% y 100%. Los descriptores deben ser progresivos, observables, concretos y competenciales. El Aspecto evaluado debe indicar el aprendizaje concreto que se valora. Agrupa las preguntas con códigos como CE1.1, CE1.2, CE2.1. Si proporciono competencias específicas, criterios o saberes básicos, relaciónalos sin inventar códigos legales. Las puntuaciones deben ser proporcionales; por ejemplo máximo 2: 0/0,5/1/1,5/2 y máximo 3: 0/0,75/1,5/2,25/3. Máximo debe coincidir con Puntos 100%. Puntuación obtenida debe quedar vacía. Usa español de España y adapta el nivel educativo. No añadas columnas ni cambies nombres u orden. Si un campo contiene ;, usa comillas dobles. Prioriza calidad frente a cantidad. Después te proporcionaré el contexto de la unidad, situación de aprendizaje o actividad: genera la rúbrica siguiendo todas estas reglas."
-
 function clean(v) { return String(v ?? "").replace(/\r/g, "").trim(); }
 function number(v) {
   const s = clean(v).replace(/\./g, "").replace(",", ".");
