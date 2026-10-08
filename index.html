@@ -57,7 +57,28 @@
   <div class="page-title"><div><span class="eyebrow">ASISTENTE DE CREACIÓN</span><h1>Generar una rúbrica</h1><p>Usa este prompt con ChatGPT u otra IA y obtén una rúbrica compatible con esta aplicación.</p></div></div>
   <div class="card prompt-card">
     <div class="card-head"><div><h2>Prompt para generar la rúbrica</h2><p>Está diseñado específicamente para la estructura CSV que utiliza ProfeAlbertoD.</p></div><button id="copyPromptBtn" class="primary-btn">📋 Copiar prompt</button></div>
-    <textarea id="rubricPrompt" readonly></textarea>
+    <textarea id="rubricPrompt" readonly>Genera una rúbrica compatible con esta aplicación. Devuelve EXCLUSIVAMENTE un CSV separado por ; y sin Markdown.
+
+Cabecera EXACTA:
+Criterio;Pregunta;Aspecto evaluado;Nivel insuficiente (0%);Puntos 0%;Nivel básico (25%);Puntos 25%;Nivel adecuado (50%);Puntos 50%;Nivel notable (75%);Puntos 75%;Nivel excelente (100%);Puntos 100%;Máximo;Puntuación obtenida
+
+REGLAS:
+- Cada fila es una pregunta evaluable.
+- Usa exactamente los niveles 0%, 25%, 50%, 75% y 100%.
+- Los descriptores deben ser progresivos, observables, concretos y competenciales.
+- Evita descriptores vagos o puramente memorísticos.
+- El Aspecto evaluado debe indicar el aprendizaje concreto que se valora.
+- Agrupa las preguntas con códigos como CE1.1, CE1.2, CE2.1.
+- Si proporciono competencias específicas, criterios o saberes básicos, relaciónalos sin inventar códigos legales.
+- Las puntuaciones deben ser proporcionales. Ejemplo máximo 2: 0/0,5/1/1,5/2. Ejemplo máximo 3: 0/0,75/1,5/2,25/3.
+- Máximo debe coincidir con Puntos 100%.
+- Puntuación obtenida debe quedar vacía.
+- Usa español de España y adapta el nivel educativo.
+- No añadas columnas ni cambies nombres u orden.
+- Si un campo contiene ;, usa comillas dobles.
+- Prioriza calidad frente a cantidad.
+
+Después te proporcionaré el contexto de la unidad, situación de aprendizaje o actividad. Genera la rúbrica siguiendo todas estas reglas.</textarea>
     <div class="prompt-help"><strong>Cómo usarlo</strong><span>1. Copia el prompt.</span><span>2. Añade después el tema, unidad, criterios y nivel educativo que quieras.</span><span>3. Pide a la IA que devuelva exclusivamente el CSV.</span><span>4. Pega el resultado en la pestaña «Rúbrica».</span></div>
   </div>
 </section></main>
