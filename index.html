@@ -1,46 +1,59 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rúbricas · ProfeAlbertoD</title>
-<link rel="stylesheet" href="style.css">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rúbricas · ProfeAlbertoD</title><link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><div class="brand-mark">R</div><div><div class="brand-title">Rúbricas</div><div class="brand-subtitle">ProfeAlbertoD · Evaluación interactiva</div></div></div>
-  <div class="top-actions"><button id="resetBtn" class="ghost-btn">Nueva rúbrica</button><button id="printBtn" class="ghost-btn">Imprimir</button></div>
+  <nav class="main-nav" id="mainNav">
+    <button class="nav-btn active" data-view="importView">Rúbrica</button>
+    <button class="nav-btn hidden" id="classNav" data-view="classView">Alumnado</button>
+  </nav>
+  <div class="top-actions"><button id="resetBtn" class="ghost-btn">Nueva rúbrica</button></div>
 </header>
+
 <main class="app-shell">
-<section id="importView" class="import-view">
-  <div class="hero"><span class="eyebrow">EVALUACIÓN SIN PAPEL</span><h1>Convierte tu rúbrica CSV en una herramienta interactiva.</h1><p>Pega tu CSV, carga la rúbrica y selecciona el nivel conseguido en cada pregunta. La puntuación se calcula automáticamente.</p></div>
+<section id="importView" class="view">
+  <div class="hero"><span class="eyebrow">EVALUACIÓN SIN PAPEL</span><h1>Tu rúbrica, convertida en una herramienta de evaluación.</h1><p>Pega el CSV que ya utilizas y evalúa desde el ordenador o la tablet. Guarda cada alumno, cambia de modo y exporta los resultados cuando termines.</p></div>
   <div class="import-grid">
     <div class="card editor-card">
-      <div class="card-head"><div><h2>Pegar rúbrica</h2><p>Formato recomendado: columnas separadas por <strong>;</strong>.</p></div><button id="exampleBtn" class="text-btn">Cargar ejemplo</button></div>
+      <div class="card-head"><div><h2>Pegar rúbrica CSV</h2><p>Se recomienda <strong>;</strong> como separador. Se admiten comillas.</p></div><button id="exampleBtn" class="text-btn">Cargar ejemplo</button></div>
       <textarea id="csvInput" spellcheck="false" placeholder="Criterio;Pregunta;Aspecto evaluado;Nivel insuficiente (0%);Puntos 0%;..."></textarea>
       <div class="editor-footer"><span id="parseStatus">Esperando CSV…</span><button id="loadBtn" class="primary-btn">Cargar rúbrica</button></div>
     </div>
-    <div class="card instructions-card"><h2>Cómo funciona</h2>
-      <div class="step"><span>01</span><div><strong>Pega tu CSV</strong><p>Usa el formato que ya utilizas para crear tus rúbricas.</p></div></div>
-      <div class="step"><span>02</span><div><strong>Selecciona niveles</strong><p>Pulsa 0 %, 25 %, 50 %, 75 % o 100 %.</p></div></div>
-      <div class="step"><span>03</span><div><strong>Obtén el resultado</strong><p>La puntuación, el porcentaje y el progreso se actualizan al instante.</p></div></div>
+    <div class="card instructions-card"><h2>Después de cargarla</h2>
+      <div class="step"><span>01</span><div><strong>Configura tu clase</strong><p>Añade alumnos manualmente o pega una lista.</p></div></div>
+      <div class="step"><span>02</span><div><strong>Evalúa</strong><p>Usa la rúbrica completa o el modo rápido, una pregunta cada vez.</p></div></div>
+      <div class="step"><span>03</span><div><strong>Exporta</strong><p>Obtén resultados por alumno, pregunta y criterio en CSV.</p></div></div>
+      <div class="step"><span>04</span><div><strong>Respalda</strong><p>Descarga un JSON para conservar o trasladar toda la sesión.</p></div></div>
     </div>
   </div>
 </section>
-<section id="rubricView" class="rubric-view hidden">
-  <div class="score-panel card"><div class="score-main">
-    <div><span class="eyebrow">RESULTADO ACTUAL</span><div class="score-value"><span id="scoreObtained">0</span><span class="score-separator">/</span><span id="scoreMax">0</span></div><div class="score-percent"><span id="scorePercent">0</span>%</div></div>
-    <div class="progress-wrap"><div class="progress-label"><span id="progressText">0 / 0 preguntas evaluadas</span><strong id="progressPercent">0%</strong></div><div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div><div id="criterionSummary" class="criterion-summary"></div></div>
-  </div></div>
-  <div class="student-bar card">
-    <div class="student-field"><label for="studentName">Alumno/a</label><input id="studentName" placeholder="Nombre del alumno o alumna"></div>
-    <div class="student-field compact"><label for="groupName">Grupo</label><input id="groupName" placeholder="2º ESO B"></div>
-    <div class="student-field compact"><label for="activityName">Actividad</label><input id="activityName" placeholder="Proyecto tecnológico"></div>
+
+<section id="classView" class="view hidden">
+  <div class="page-title"><div><span class="eyebrow">GESTIÓN DE ALUMNADO</span><h1>Tu clase</h1><p id="classSubtitle"></p></div><div class="button-row"><button id="addStudentBtn" class="primary-btn">+ Añadir alumno</button><button id="pasteStudentsBtn" class="ghost-btn">Pegar lista</button></div></div>
+  <div class="card class-tools">
+    <div class="student-add hidden" id="studentAddBox"><input id="newStudentName" placeholder="Nombre y apellidos"><button id="confirmStudentBtn" class="primary-btn">Añadir</button></div>
+    <textarea id="studentListInput" class="hidden mini-textarea" placeholder="Pega un alumno por línea&#10;Ana García&#10;Pablo López&#10;..."></textarea>
+    <div class="button-row hidden" id="studentPasteActions"><button id="saveStudentListBtn" class="primary-btn">Añadir lista</button><button id="cancelStudentListBtn" class="ghost-btn">Cancelar</button></div>
   </div>
+  <div id="studentGrid" class="student-grid"></div>
+</section>
+
+<section id="rubricView" class="view hidden">
+  <div class="score-panel card">
+    <div class="score-main"><div><span class="eyebrow">RESULTADO ACTUAL</span><div class="score-value"><span id="scoreObtained">0</span><span class="score-separator">/</span><span id="scoreMax">0</span></div><div class="score-percent"><span id="scorePercent">0</span>%</div></div>
+    <div class="progress-wrap"><div class="progress-label"><span id="progressText">0 / 0 preguntas evaluadas</span><strong id="progressPercent">0%</strong></div><div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div><div id="criterionSummary" class="criterion-summary"></div></div></div>
+  </div>
+  <div class="student-bar card"><div class="student-field"><label>ALUMNO/A</label><div class="student-name-display" id="activeStudentName">Sin seleccionar</div></div><div class="student-field"><label>GRUPO</label><input id="groupName" placeholder="2º ESO B"></div><div class="student-field"><label>ACTIVIDAD</label><input id="activityName" placeholder="Proyecto tecnológico"></div></div>
+  <div class="mode-bar card"><div><strong>Modo de evaluación</strong><span id="modeHelp">Rúbrica completa</span></div><div class="button-row"><button id="fullModeBtn" class="mode-btn active">📋 Completa</button><button id="quickModeBtn" class="mode-btn">⚡ Rápida</button><button id="resultsBtn" class="mode-btn">📊 Resultados</button></div></div>
   <div id="rubricContainer"></div>
+  <div id="quickContainer" class="hidden"></div>
+  <div id="resultsContainer" class="hidden"></div>
 </section>
 </main>
-<div id="toast" class="toast"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="app.js"></script>
-</body>
-</html>
+</body></html>
