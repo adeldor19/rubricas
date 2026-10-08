@@ -274,6 +274,7 @@ function printBlankRubric() {
 function printStudentRubric() {
   const student = current(); if (!student) return;
   const sel = selections(student), t = totals(student), grade = t.pct / 10;
+  const competencyRows = competencyResults(student).map(c => "<tr><td><strong>" + escapeHTML(c.name) + "</strong></td><td>" + c.evaluated + " / " + c.total + "</td><td>" + format(c.got) + " / " + format(c.max) + "</td><td>" + format(c.pct) + "%</td><td>" + format(c.pct / 10) + "</td></tr>").join("");
   const rows = state.rubric.map(q => {
     const l = sel.get(q.id);
     const cells = q.levels.map(level => "<td class='" + (l?.key === level.key ? "selected-print" : "") + "'>" + (l?.key === level.key ? "✓ " : "") + format(level.points) + " pt</td>").join("");
