@@ -223,7 +223,7 @@ function renderResults() {
   const actions = document.createElement("div"); actions.className = "card backup-card";
   actions.innerHTML = "<h2>Exportación y copia de seguridad</h2><p>Guarda los resultados o una copia completa de esta sesión.</p>";
   const buttons = document.createElement("div"); buttons.className = "button-row";
-  [["CSV del alumno",()=>downloadStudent(student)],["CSV de toda la clase",downloadClass],["Sesión JSON",downloadJSON]].forEach(([label,fn])=>{const b=document.createElement("button");b.className="ghost-btn";b.textContent=label;b.onclick=fn;buttons.appendChild(b)});
+  [["PDF del alumno",printStudentRubric],["CSV del alumno",()=>downloadStudent(student)],["CSV de toda la clase",downloadClass],["Sesión JSON",downloadJSON]].forEach(([label,fn])=>{const b=document.createElement("button");b.className="ghost-btn";b.textContent=label;b.onclick=fn;buttons.appendChild(b)});
   actions.appendChild(buttons); box.appendChild(actions);
 }
 function renderEvaluation() {
@@ -257,6 +257,34 @@ function downloadClass() {
   state.students.forEach(student=>{const sel=selections(student);state.rubric.forEach(q=>{const l=sel.get(q.id);rows.push([student.name,state.group,state.activity,q.criterion,q.question,l?.label||"",l?.pct??"",l?.points??"",q.max]);})});
   download("rubricas_clase.csv",rows.map(r=>r.map(csvValue).join(";")).join("\n"));
 }
+function printBlankRubric() {
+  const title = state.activity ? "Rúbrica · " + state.activity : "Rúbrica de evaluación";
+  const rows = state.rubric.map(q => {
+    const levels = q.levels.map(l => "<td><strong>" + escapeHTML(l.label) + " (" + l.pct + "%)</strong><br>" + escapeHTML(l.description) + "<br><b>" + format(l.points) + " pt</b></td>").join("");
+    return "<tr><td><strong>" + escapeHTML(q.criterion) + "</strong></td><td>" + escapeHTML(q.question) + "<br><small>" + escapeHTML(q.aspect) + "</small></td>" + levels + "</tr>";
+  }).join("");
+  openPrint("<div class='print-header'><div><h1>" + escapeHTML(title) + "</h1><p>Grupo: " + escapeHTML(state.group || "__________") + " &nbsp; · &nbsp; Alumno/a: ______________________________</p></div><div class='print-brand'>ProfeAlbertoD</div></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>Insuficiente<br>0%</th><th>Básico<br>25%</th><th>Adecuado<br>50%</th><th>Notable<br>75%</th><th>Excelente<br>100%</th></tr></thead><tbody>" + rows + "</tbody></table><div class='print-footer'>Puntuación obtenida: __________ / " + format(state.rubric.reduce((s,q)=>s+q.max,0)) + " &nbsp;&nbsp;&nbsp; Nota: ______ / 10</div>", "blank");
+}
+function printStudentRubric() {
+  const student = current(); if (!student) return;
+  const sel = selections(student), t = totals(student), grade = t.pct / 10;
+  const rows = state.rubric.map(q => {
+    const l = sel.get(q.id);
+    const cells = q.levels.map(level => "<td class='" + (l?.key === level.key ? "selected-print" : "") + "'>" + (l?.key === level.key ? "✓ " : "") + format(level.points) + " pt</td>").join("");
+    return "<tr><td><strong>" + escapeHTML(q.criterion) + "</strong></td><td>" + escapeHTML(q.question) + "<br><small>" + escapeHTML(q.aspect) + "</small></td>" + cells + "<td class='print-obtained'>" + (l ? format(l.points) : "—") + " / " + format(q.max) + "</td></tr>";
+  }).join("");
+  openPrint("<div class='print-header'><div><h1>" + (state.activity ? escapeHTML(state.activity) : "Rúbrica de evaluación") + "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) + " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") + "</p></div><div class='print-brand'>ProfeAlbertoD</div></div><div class='print-grade'><div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) + "</strong></div><div><span>NOTA</span><strong>" + format(grade) + " / 10</strong></div><div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" + rows + "</tbody></table><div class='print-footer'>Puntuación: <strong>" + format(t.got) + " / " + format(t.max) + "</strong> &nbsp;&nbsp; · &nbsp;&nbsp; Nota: <strong>" + format(grade) + " / 10</strong></div>", "student");
+}
+function openPrint(content, type) {
+  let area = document.getElementById("printArea");
+  if (!area) { area = document.createElement("div"); area.id = "printArea"; document.body.appendChild(area); }
+  area.innerHTML = content;
+  document.body.classList.add("printing-" + type);
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { document.body.classList.remove("printing-" + type); area.innerHTML = ""; }, 500);
+  }, 80);
+}
 function downloadJSON() {
   download("rubricas_sesion.json",JSON.stringify({version:3,exportedAt:new Date().toISOString(),csv:$("#csvInput").value,rubric:state.rubric,students:state.students,active:state.active,group:state.group,activity:state.activity},null,2),"application/json;charset=utf-8");
 }
@@ -286,6 +314,7 @@ function setup() {
   $("#pasteStudentsBtn").onclick=()=>{$("#studentListInput").classList.remove("hidden");$("#studentPasteActions").classList.remove("hidden")};
   $("#cancelStudentListBtn").onclick=()=>{$("#studentListInput").classList.add("hidden");$("#studentPasteActions").classList.add("hidden")};
   $("#saveStudentListBtn").onclick=()=>{clean($("#studentListInput").value).split("\n").map(clean).filter(Boolean).forEach(addStudent);$("#studentListInput").value="";$("#studentListInput").classList.add("hidden");$("#studentPasteActions").classList.add("hidden");renderStudents()};
+  $("#blankPdfBtn").onclick=printBlankRubric;
   $("#fullModeBtn").onclick=()=>{state.mode="full";renderEvaluation()};
   $("#quickModeBtn").onclick=()=>{state.mode="quick";state.quick=0;renderEvaluation()};
   $("#resultsBtn").onclick=()=>{state.mode="results";renderEvaluation()};
