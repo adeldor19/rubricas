@@ -34,7 +34,7 @@
 
 <section id="classView" class="view hidden">
   <div class="page-title"><div><span class="eyebrow">GESTIÓN DE ALUMNADO</span><h1>Tu clase</h1><p id="classSubtitle"></p></div><div class="button-row"><button id="addStudentBtn" class="primary-btn">+ Añadir alumno</button><button id="pasteStudentsBtn" class="ghost-btn">Pegar lista</button></div></div>
-  <div class="card class-tools">
+  <div class="card class-tools"><div class="button-row print-actions"><button id="blankPdfBtn" class="ghost-btn">🖨️ Descargar rúbrica en blanco (PDF)</button></div>
     <div class="student-add hidden" id="studentAddBox"><input id="newStudentName" placeholder="Nombre y apellidos"><button id="confirmStudentBtn" class="primary-btn">Añadir</button></div>
     <textarea id="studentListInput" class="hidden mini-textarea" placeholder="Pega un alumno por línea&#10;Ana García&#10;Pablo López&#10;..."></textarea>
     <div class="button-row hidden" id="studentPasteActions"><button id="saveStudentListBtn" class="primary-btn">Añadir lista</button><button id="cancelStudentListBtn" class="ghost-btn">Cancelar</button></div>
@@ -54,6 +54,6 @@
   <div id="resultsContainer" class="hidden"></div>
 </section>
 </main>
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<div id="printArea"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="app.js"></script>
 </body></html>
