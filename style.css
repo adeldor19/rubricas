@@ -21,4 +21,6 @@
  .print-rubric small{font-size:7px;color:#444}.print-rubric tr{break-inside:avoid}.selected-print{background:#eee;font-weight:800}.print-obtained{text-align:center;font-weight:800}
  .print-grade{display:flex;gap:12px;margin:8px 0}.print-grade>div{border:1px solid #777;padding:7px 12px;min-width:130px}.print-grade span{display:block;font-size:7px;font-weight:800;text-transform:uppercase}.print-grade strong{display:block;font-size:17px;margin-top:2px}
  .print-footer{margin-top:10px;font-size:10px;border-top:2px solid #111;padding-top:7px}
+
+ .competency-title h2{font-size:13px;margin:10px 0 5px}.competency-table{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px}.competency-table th,.competency-table td{border:1px solid #777;padding:4px;text-align:left}.competency-table th{background:#eee;font-size:7px;text-transform:uppercase}.competency-table td:nth-child(n+2){text-align:center}
 }
