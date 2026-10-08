@@ -272,16 +272,67 @@ function printBlankRubric() {
   openPrint("<div class='print-header'><div><h1>" + escapeHTML(title) + "</h1><p>Grupo: " + escapeHTML(state.group || "__________") + " &nbsp; · &nbsp; Alumno/a: ______________________________</p></div><div class='print-brand'>ProfeAlbertoD</div></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>Insuficiente<br>0%</th><th>Básico<br>25%</th><th>Adecuado<br>50%</th><th>Notable<br>75%</th><th>Excelente<br>100%</th></tr></thead><tbody>" + rows + "</tbody></table><div class='print-footer'>Puntuación obtenida: __________ / " + format(state.rubric.reduce((s,q)=>s+q.max,0)) + " &nbsp;&nbsp;&nbsp; Nota: ______ / 10</div>", "blank");
 }
 function printStudentRubric() {
-  const student = current(); if (!student) return;
-  const sel = selections(student), t = totals(student), grade = t.pct / 10;
-  const competencyRows = competencyResults(student).map(c => "<tr><td><strong>" + escapeHTML(c.name) + "</strong></td><td>" + c.evaluated + " / " + c.total + "</td><td>" + format(c.got) + " / " + format(c.max) + "</td><td>" + format(c.pct) + "%</td><td>" + format(c.pct / 10) + "</td></tr>").join("");
-  const rows = state.rubric.map(q => {
-    const l = sel.get(q.id);
-    const cells = q.levels.map(level => "<td class='" + (l?.key === level.key ? "selected-print" : "") + "'>" + (l?.key === level.key ? "✓ " : "") + format(level.points) + " pt</td>").join("");
-    return "<tr><td><strong>" + escapeHTML(q.criterion) + "</strong></td><td>" + escapeHTML(q.question) + "<br><small>" + escapeHTML(q.aspect) + "</small></td>" + cells + "<td class='print-obtained'>" + (l ? format(l.points) : "—") + " / " + format(q.max) + "</td></tr>";
-  }).join("");
-  openPrint("<div class='print-header'><div><h1>" + (state.activity ? escapeHTML(state.activity) : "Rúbrica de evaluación") + "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) + " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") + "</p></div><div class='print-brand'>ProfeAlbertoD</div></div><div class='competency-title'><h2>Notas por competencia</h2></div><table class='competency-table'><thead><tr><th>Competencia</th><th>Evaluadas</th><th>Puntuación</th><th>%</th><th>Nota / 10</th></tr></thead><tbody>" + competencyRows + "</tbody></table><div class='print-grade'><div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) + "</strong></div><div><span>NOTA</span><strong>" + format(grade) + " / 10</strong></div><div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" + rows + "</tbody></table><div class='print-footer'>Puntuación: <strong>" + format(t.got) + " / " + format(t.max) + "</strong> &nbsp;&nbsp; · &nbsp;&nbsp; Nota: <strong>" + format(grade) + " / 10</strong></div>", "student");
+  try {
+    const student = current();
+    if (!student) {
+      notify("No hay ningún alumno seleccionado.");
+      return;
+    }
+
+    const sel = selections(student);
+    const t = totals(student);
+    const grade = t.pct / 10;
+
+    const competencyRows = competencyResults(student).map(c =>
+      "<tr><td><strong>" + escapeHTML(c.name) + "</strong></td>" +
+      "<td>" + c.evaluated + " / " + c.total + "</td>" +
+      "<td>" + format(c.got) + " / " + format(c.max) + "</td>" +
+      "<td>" + format(c.pct) + "%</td>" +
+      "<td>" + format(c.pct / 10) + "</td></tr>"
+    ).join("");
+
+    const rows = state.rubric.map(q => {
+      const l = sel.get(q.id);
+      const cells = q.levels.map(level =>
+        "<td class='" + (l?.key === level.key ? "selected-print" : "") + "'>" +
+        (l?.key === level.key ? "✓ " : "") + format(level.points) + " pt</td>"
+      ).join("");
+      return "<tr><td><strong>" + escapeHTML(q.criterion) + "</strong></td>" +
+        "<td>" + escapeHTML(q.question) + "<br><small>" + escapeHTML(q.aspect) + "</small></td>" +
+        cells +
+        "<td class='print-obtained'>" + (l ? format(l.points) : "—") + " / " + format(q.max) + "</td></tr>";
+    }).join("");
+
+    const content =
+      "<div class='print-header'><div><h1>" +
+      (state.activity ? escapeHTML(state.activity) : "Rúbrica de evaluación") +
+      "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) +
+      " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") +
+      "</p></div><div class='print-brand'>ProfeAlbertoD</div></div>" +
+
+      "<div class='competency-title'><h2>Notas por competencia</h2></div>" +
+      "<table class='competency-table'><thead><tr><th>Competencia</th><th>Evaluadas</th><th>Puntuación</th><th>%</th><th>Nota / 10</th></tr></thead><tbody>" +
+      competencyRows + "</tbody></table>" +
+
+      "<div class='print-grade'>" +
+      "<div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) + "</strong></div>" +
+      "<div><span>NOTA</span><strong>" + format(grade) + " / 10</strong></div>" +
+      "<div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div>" +
+      "</div>" +
+
+      "<table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" +
+      rows + "</tbody></table>" +
+
+      "<div class='print-footer'>Puntuación: <strong>" + format(t.got) + " / " + format(t.max) +
+      "</strong> &nbsp;&nbsp; · &nbsp;&nbsp; Nota: <strong>" + format(grade) + " / 10</strong></div>";
+
+    openPrint(content, "student");
+  } catch (error) {
+    console.error("Error al generar el PDF del alumno:", error);
+    notify("Error al generar el PDF: " + (error.message || "revisa la consola"));
+  }
 }
+
 function openPrint(content, type) {
   const win = window.open("", "_blank", "width=1200,height=800");
   if (!win) {
