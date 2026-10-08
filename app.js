@@ -4,6 +4,7 @@ CE1.1;P2. Requisitos y restricciones;Identifica requisitos y restricciones del s
 
 const $ = (s) => document.querySelector(s);
 const state = { rubric: [], students: [], active: null, group: "", activity: "", mode: "full", quick: 0 };
+
 function clean(v) { return String(v ?? "").replace(/\r/g, "").trim(); }
 function number(v) {
   const s = clean(v).replace(/\./g, "").replace(",", ".");
@@ -48,7 +49,7 @@ function parseCSV(text) {
     }));
     return {
       id: "q" + i,
-      competency: clean(row[index["Competencia"]] ?? row[index["Competencia específica"]] ?? row[index["Competencias específicas"]] ?? row[index["Competencia específica asociada"]] ?? ""),
+      competency: clean(row[index["Competencia"]] || row[index["Competencia específica"]] || row[index["Competencias específicas"]] || ""),
       criterion: clean(row[index["Criterio"]]),
       question: clean(row[index["Pregunta"]]),
       aspect: clean(row[index["Aspecto evaluado"]]),
@@ -72,25 +73,7 @@ function grouped() {
   });
   return result;
 }
-function competencies() {
-  const result = new Map();
-  state.rubric.forEach(q => {
-    const name = q.competency || q.criterion || "Sin competencia";
-    if (!result.has(name)) result.set(name, []);
-    result.get(name).push(q);
-  });
-  return result;
-}
-function competencyResults(student) {
-  const sel = selections(student);
-  return [...competencies()].map(([name, items]) => {
-    const max = items.reduce((sum, q) => sum + q.max, 0);
-    const got = items.reduce((sum, q) => sum + (sel.get(q.id)?.points || 0), 0);
-    const evaluated = items.filter(q => sel.has(q.id)).length;
-    return { name, max, got, evaluated, total: items.length, pct: max ? got / max * 100 : 0 };
-  });
-}
-function totals(student) {
+function competencyResults(student) {\n  const sel = selections(student), groups = new Map();\n  state.rubric.forEach(q => { const name = q.competency || q.criterion || "Sin competencia"; if (!groups.has(name)) groups.set(name, []); groups.get(name).push(q); });\n  return [...groups].map(([name, items]) => { const max = items.reduce((s,q)=>s+q.max,0); const got = items.reduce((s,q)=>s+(sel.get(q.id)?.points||0),0); return {name,max,got,pct:max?got/max*100:0,evaluated:items.filter(q=>sel.has(q.id)).length,total:items.length}; });\n}\nfunction totals(student) {
   const sel = selections(student);
   const max = state.rubric.reduce((a, q) => a + q.max, 0);
   const got = state.rubric.reduce((a, q) => a + (sel.get(q.id)?.points || 0), 0);
@@ -286,13 +269,12 @@ function printBlankRubric() {
 function printStudentRubric() {
   const student = current(); if (!student) return;
   const sel = selections(student), t = totals(student), grade = t.pct / 10;
-  const competencyRows = competencyResults(student).map(r => "<tr><td><strong>" + escapeHTML(r.name) + "</strong></td><td>" + r.evaluated + " / " + r.total + "</td><td>" + format(r.got) + " / " + format(r.max) + "</td><td><strong>" + format(r.pct) + "%</strong></td><td><strong>" + format(r.pct / 10) + " / 10</strong></td></tr>").join("");
   const rows = state.rubric.map(q => {
     const l = sel.get(q.id);
     const cells = q.levels.map(level => "<td class='" + (l?.key === level.key ? "selected-print" : "") + "'>" + (l?.key === level.key ? "✓ " : "") + format(level.points) + " pt</td>").join("");
     return "<tr><td><strong>" + escapeHTML(q.criterion) + "</strong></td><td>" + escapeHTML(q.question) + "<br><small>" + escapeHTML(q.aspect) + "</small></td>" + cells + "<td class='print-obtained'>" + (l ? format(l.points) : "—") + " / " + format(q.max) + "</td></tr>";
   }).join("");
-  openPrint("<div class='print-header'><div><h1>" + (state.activity ? escapeHTML(state.activity) : "Rúbrica de evaluación") + "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) + " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") + "</p></div><div class='print-brand'>ProfeAlbertoD</div></div><div class='competency-title'><h2>Notas por competencia</h2></div><table class='competency-table'><thead><tr><th>Competencia</th><th>Evaluadas</th><th>Puntuación</th><th>%</th><th>Nota / 10</th></tr></thead><tbody>" + competencyRows + "</tbody></table><div class='print-grade'><div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) + "</strong></div><div><span>NOTA</span><strong>" + format(grade) + " / 10</strong></div><div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" + rows + "</tbody></table><div class='print-footer'>Puntuación: <strong>" + format(t.got) + " / " + format(t.max) + "</strong> &nbsp;&nbsp; · &nbsp;&nbsp; Nota: <strong>" + format(grade) + " / 10</strong></div>", "student");
+  openPrint("<div class='print-header'><div><h1>" + (state.activity ? escapeHTML(state.activity) : "Rúbrica de evaluación") + "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) + " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") + "</p></div><div class='print-brand'>ProfeAlbertoD</div></div><div class='print-grade'><div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) + "</strong></div><div><span>NOTA</span><strong>" + format(grade) + " / 10</strong></div><div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" + rows + "</tbody></table><div class='print-footer'>Puntuación: <strong>" + format(t.got) + " / " + format(t.max) + "</strong> &nbsp;&nbsp; · &nbsp;&nbsp; Nota: <strong>" + format(grade) + " / 10</strong></div>", "student");
 }
 function openPrint(content, type) {
   const win = window.open("", "_blank", "width=1200,height=800");
@@ -331,7 +313,7 @@ function restore() {
   } catch {}
 }
 function setup() {
-  $("#copyPromptBtn").onclick=async()=>{try{await navigator.clipboard.writeText($("#rubricPrompt").value);notify("Prompt copiado al portapapeles")}catch{notify("No se ha podido copiar automáticamente")}};\n  $("#rubricPrompt").value=RUBRIC_PROMPT;\n  $("#loadBtn").onclick=loadRubric;
+  $("#loadBtn").onclick=loadRubric;
   $("#exampleBtn").onclick=()=>{$("#csvInput").value=EXAMPLE_CSV;$("#parseStatus").textContent="Ejemplo cargado."};
   $("#csvInput").oninput=()=>{try{$("#parseStatus").textContent="CSV válido · "+parseCSV($("#csvInput").value).length+" preguntas detectadas"}catch{$("#parseStatus").textContent=$("#csvInput").value.trim()?"Revisa el formato del CSV.":"Esperando CSV…"}};
   $("#resetBtn").onclick=()=>{if(state.rubric.length&&!confirm("¿Empezar una nueva rúbrica? Se borrará la sesión de este navegador."))return;localStorage.removeItem("rubricas-app-v3");location.reload()};
