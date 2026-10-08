@@ -8,7 +8,7 @@
 <header class="topbar">
   <div class="brand"><div class="brand-mark">R</div><div><div class="brand-title">Rúbricas</div><div class="brand-subtitle">ProfeAlbertoD · Evaluación interactiva</div></div></div>
   <nav class="main-nav" id="mainNav">
-    <button class="nav-btn active" data-view="importView">Rúbrica</button>
+    <button class="nav-btn active" data-view="importView">Rúbrica</button><button class="nav-btn" data-view="promptView">Generar rúbrica</button>
     <button class="nav-btn hidden" id="classNav" data-view="classView">Alumnado</button>
   </nav>
   <div class="top-actions"><button id="resetBtn" class="ghost-btn">Nueva rúbrica</button></div>
@@ -53,7 +53,14 @@
   <div id="quickContainer" class="hidden"></div>
   <div id="resultsContainer" class="hidden"></div>
 </section>
-</main>
+<section id="promptView" class="view hidden">
+  <div class="page-title"><div><span class="eyebrow">ASISTENTE DE CREACIÓN</span><h1>Generar una rúbrica</h1><p>Usa este prompt con ChatGPT u otra IA y obtén una rúbrica compatible con esta aplicación.</p></div></div>
+  <div class="card prompt-card">
+    <div class="card-head"><div><h2>Prompt para generar la rúbrica</h2><p>Está diseñado específicamente para la estructura CSV que utiliza ProfeAlbertoD.</p></div><button id="copyPromptBtn" class="primary-btn">📋 Copiar prompt</button></div>
+    <textarea id="rubricPrompt" readonly></textarea>
+    <div class="prompt-help"><strong>Cómo usarlo</strong><span>1. Copia el prompt.</span><span>2. Añade después el tema, unidad, criterios y nivel educativo que quieras.</span><span>3. Pide a la IA que devuelva exclusivamente el CSV.</span><span>4. Pega el resultado en la pestaña «Rúbrica».</span></div>
+  </div>
+</section></main>
 <div id="printArea"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script src="app.js"></script>
 </body></html>
