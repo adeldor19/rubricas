@@ -401,9 +401,61 @@ function renderDashboard() {
     const evaluated = evidence.reduce((sum, x) => sum + x.evaluated, 0), possible = students.length * items.length;
     return "<tr><td><strong>" + escapeHTML(criterion) + "</strong></td><td>" + evidence.length + " / " + students.length + "</td><td>" + (average === null ? "—" : format(average) + "%") + "</td><td>" + evaluated + " / " + possible + "</td></tr>";
   }).join("");
-  host.innerHTML = stats + "<section class='card dashboard-heatmap'><div class='card-head'><div><h2>Mapa de evaluación</h2><p>Selecciona una celda para abrir los resultados de ese alumno.</p></div></div>" + legend + head + body + "</tbody></table></div></section>" +
-    "<section class='card dashboard-criteria'><h2>Resumen por criterio</h2><p class='table-note'>El promedio solo incluye alumnado con evidencias evaluadas. No se interpreta como un nivel automático de adquisición competencial.</p><div class='dashboard-table-wrap'><table class='results-table'><thead><tr><th>Criterio</th><th>Alumnado con evidencias</th><th>Promedio sobre lo evaluado</th><th>Aspectos evaluados</th></tr></thead><tbody>" + overviewRows + "</tbody></table></div></section>";
+  const criterionAnalysis = criteria.map(([criterion, items]) => {
+    const results = students.map(st => criterionEvidence(st, items, criterion)).filter(r => r.pct !== null);
+    const average = results.length ? results.reduce((sum, r) => sum + r.pct, 0) / results.length : null;
+    const below = results.filter(r => r.pct < 50).length;
+    const lowShare = results.length ? below / results.length : 0;
+    const evaluatedAspects = results.reduce((sum, r) => sum + r.evaluated, 0);
+    const possibleAspects = students.length * items.length;
+    let status = "Sin evidencias", statusClass = "diff-limited";
+    if (results.length < 3) {
+      status = "Muestra limitada"; statusClass = "diff-limited";
+    } else if (average < 50 && lowShare >= 0.5) {
+      status = "Prioridad de refuerzo"; statusClass = "diff-priority";
+    } else if (average < 70 || lowShare >= 0.35) {
+      status = "Revisar"; statusClass = "diff-review";
+    } else if (average >= 75 && lowShare < 0.15) {
+      status = "Consolidado"; statusClass = "diff-good";
+    } else {
+      status = "Seguimiento"; statusClass = "diff-watch";
+    }
+    return { criterion, items, results, average, below, lowShare, evaluatedAspects, possibleAspects, status, statusClass };
+  });
+  const assessedPairs = criterionAnalysis.reduce((sum, x) => sum + x.results.length, 0);
+  const lowPairs = criterionAnalysis.reduce((sum, x) => sum + x.below, 0);
+  const priorityCount = criterionAnalysis.filter(x => x.status === "Prioridad de refuerzo").length;
+  const consolidatedCount = criterionAnalysis.filter(x => x.status === "Consolidado").length;
+  const difficultyStats = "<div class='difficulty-stats'>" +
+    "<article class='card difficulty-stat'><span>CRITERIOS PRIORITARIOS</span><strong>" + priorityCount + "</strong><small>Necesitan refuerzo según los resultados disponibles</small></article>" +
+    "<article class='card difficulty-stat'><span>RESULTADOS INFERIORES AL 50%</span><strong>" + lowPairs + " / " + assessedPairs + "</strong><small>Combinaciones alumno-criterio evaluadas</small></article>" +
+    "<article class='card difficulty-stat'><span>CRITERIOS CONSOLIDADOS</span><strong>" + consolidatedCount + "</strong><small>Buen resultado y pocas dificultades detectadas</small></article>" +
+    "<article class='card difficulty-stat'><span>EVIDENCIAS DISPONIBLES</span><strong>" + assessedPairs + " / " + (students.length * criteria.length) + "</strong><small>Combinaciones alumno-criterio con datos</small></article></div>";
+  const difficultyLegend = "<div class='difficulty-legend'><span><i class='difficulty-low'></i> Necesita refuerzo (&lt;50%)</span><span><i class='difficulty-mid'></i> En desarrollo (50–74%)</span><span><i class='difficulty-high'></i> Logro alto (75–100%)</span><span><i class='difficulty-pending'></i> Sin evidencias</span></div>";
+  const difficultyRows = students.map(st => {
+    const cells = criteria.map(([criterion, items]) => {
+      const r = criterionEvidence(st, items, criterion);
+      const cls = r.pct === null ? "difficulty-pending" : r.pct < 50 ? "difficulty-low" : r.pct < 75 ? "difficulty-mid" : "difficulty-high";
+      const pct = r.pct === null ? "Sin datos" : format(r.pct) + "%";
+      const title = st.name + " · " + criterion + " · " + r.status + " · " + r.evaluated + "/" + r.total + " aspectos evaluados";
+      return "<td><button type='button' class='difficulty-cell " + cls + "' data-student='" + escapeHTML(st.id) + "' data-criterion='" + escapeHTML(criterion) + "' title='" + escapeHTML(title) + "'><strong>" + pct + "</strong><span>" + r.evaluated + "/" + r.total + " aspectos</span><small>" + (r.status === "Evaluación parcial" ? "Datos parciales" : r.status === "Sin evaluar" ? "Pendiente" : "Evaluación completa") + "</small></button></td>";
+    }).join("");
+    return "<tr><th class='heat-student'>" + escapeHTML(st.name) + "</th>" + cells + "</tr>";
+  }).join("");
+  const difficultyMap = "<section class='card dashboard-difficulty-map'><div class='card-head'><div><h2>Mapa de dificultades del grupo</h2><p>El color muestra el resultado sobre los aspectos evaluados de cada criterio. Selecciona una celda para consultar las evidencias del alumno.</p></div></div>" + difficultyLegend + "<div class='dashboard-table-wrap'><table class='difficulty-table'><thead><tr><th>Alumno/a</th>" + criteria.map(([c]) => "<th>" + escapeHTML(c) + "</th>").join("") + "</tr></thead><tbody>" + difficultyRows + "</tbody></table></div><p class='table-note'>Los aspectos pendientes no se consideran suspensos. Los porcentajes de cada celda se calculan solo con las evidencias evaluadas; los resultados parciales deben interpretarse con cautela.</p></section>";
+  const priorityRows = criterionAnalysis.map(x => {
+    const lowText = x.results.length ? x.below + " / " + x.results.length + " (" + format(x.lowShare * 100) + "%)" : "—";
+    const averageText = x.average === null ? "—" : format(x.average) + "%";
+    const coverage = x.possibleAspects ? x.evaluatedAspects / x.possibleAspects * 100 : 0;
+    return "<tr><td><strong>" + escapeHTML(x.criterion) + "</strong></td><td>" + averageText + "</td><td>" + lowText + "</td><td>" + x.results.length + " / " + students.length + "</td><td>" + x.evaluatedAspects + " / " + x.possibleAspects + " (" + format(coverage) + "%)</td><td><span class='difficulty-badge " + x.statusClass + "'>" + escapeHTML(x.status) + "</span></td></tr>";
+  }).join("");
+  const priorityTable = "<section class='card dashboard-priorities'><h2>Prioridades de refuerzo por criterio</h2><p class='table-note'>El orden de lectura combina el promedio, la proporción de resultados inferiores al 50% y la cantidad de evidencias disponibles. Con menos de tres alumnos evaluados, la muestra se marca como limitada.</p><div class='dashboard-table-wrap'><table class='results-table'><thead><tr><th>Criterio</th><th>Promedio</th><th>Resultados &lt;50%</th><th>Alumnado con datos</th><th>Cobertura de aspectos</th><th>Lectura orientativa</th></tr></thead><tbody>" + priorityRows + "</tbody></table></div></section>";
+  host.innerHTML = stats + difficultyStats + difficultyMap + priorityTable + "<section class='card dashboard-heatmap'><div class='card-head'><div><h2>Mapa de evaluación</h2><p>Selecciona una celda para abrir los resultados de ese alumno.</p></div></div>" + legend + head + body + "</tbody></table></div></section>" +
+    "<section class='card dashboard-criteria'><h2>Cobertura de evaluación por criterio</h2><p class='table-note'>El promedio solo incluye alumnado con evidencias evaluadas. No se interpreta como un nivel automático de adquisición competencial.</p><div class='dashboard-table-wrap'><table class='results-table'><thead><tr><th>Criterio</th><th>Alumnado con evidencias</th><th>Promedio sobre lo evaluado</th><th>Aspectos evaluados</th></tr></thead><tbody>" + overviewRows + "</tbody></table></div></section>";
   host.querySelectorAll(".heat-cell").forEach(button => button.addEventListener("click", () => {
+    state.active = button.dataset.student; state.mode = "results"; view("rubricView"); renderEvaluation();
+  }));
+  host.querySelectorAll(".difficulty-cell").forEach(button => button.addEventListener("click", () => {
     state.active = button.dataset.student; state.mode = "results"; view("rubricView"); renderEvaluation();
   }));
 }
