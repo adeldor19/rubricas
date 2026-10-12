@@ -408,23 +408,16 @@ function printBlankRubric() {
 function printStudentRubric() {
   try {
     const student = current();
-    if (!student) {
-      notify("No hay ningún alumno seleccionado.");
-      return;
-    }
-
-    const sel = selections(student);
-    const t = totals(student);
+    if (!student) { notify("No hay ningún alumno seleccionado."); return; }
+    const sel = selections(student), t = totals(student);
     const grade = t.pct / 10;
-
-    const competencyRows = competencyResults(student).map(c =>
-      "<tr><td><strong>" + escapeHTML(c.name) + "</strong></td>" +
-      "<td>" + c.evaluated + " / " + c.total + "</td>" +
-      "<td>" + format(c.got) + " / " + format(c.max) + "</td>" +
-      "<td>" + format(c.pct) + "%</td>" +
-      "<td>" + format(c.pct / 10) + "</td></tr>"
-    ).join("");
-
+    const includeSummary = $("#reportIncludeSummary") ? $("#reportIncludeSummary").checked : true;
+    const includeRubric = $("#reportIncludeRubric") ? $("#reportIncludeRubric").checked : true;
+    const observations = clean($("#reportObservations")?.value || "");
+    const criterionRows = [...grouped()].map(([criterion, items]) => {
+      const result = criterionEvidence(student, items, criterion);
+      return "<tr><td><strong>" + escapeHTML(criterion) + "</strong></td><td>" + result.evaluated + " / " + result.total + "</td><td>" + format(result.got) + " / " + format(result.maxEvaluated) + "</td><td>" + (result.pct === null ? "—" : format(result.pct) + "%") + "</td><td>" + escapeHTML(result.status) + "</td></tr>";
+    }).join("");
     const rows = state.rubric.map(q => {
       const l = sel.get(q.id);
       const cells = q.levels.map(level =>
@@ -436,35 +429,47 @@ function printStudentRubric() {
         cells +
         "<td class='print-obtained'>" + (l ? format(l.points) : "—") + " / " + format(q.max) + "</td></tr>";
     }).join("");
-
+    const summarySection = includeSummary
+      ? "<div class='competency-title'><h2>Resumen por criterio de evaluación</h2></div><table class='competency-table'><thead><tr><th>Criterio</th><th>Evidencias</th><th>Puntuación evaluada</th><th>Logro</th><th>Lectura orientativa</th></tr></thead><tbody>" + criterionRows + "</tbody></table>"
+      : "";
+    const rubricSection = includeRubric
+      ? "<div class='competency-title'><h2>Detalle de la rúbrica</h2></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" + rows + "</tbody></table>"
+      : "";
+    const observationsSection = observations
+      ? "<div class='print-observations'><h2>Observaciones y próximos pasos</h2><p>" + escapeHTML(observations).replace(/\n/g, "<br>") + "</p></div>"
+      : "";
+    const pendingNote = t.evaluated < t.total ? "<p class='print-note'>Resultado provisional: quedan " + (t.total - t.evaluated) + " aspectos sin evaluar. En el resultado global, los aspectos pendientes todavía no suman puntos.</p>" : "";
     const content =
-      "<div class='print-header'><div><h1>" +
-      (state.activity ? escapeHTML(state.activity) : "Rúbrica de evaluación") +
-      "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) +
-      " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") +
+      "<div class='print-header'><div><h1>" + (state.activity ? escapeHTML(state.activity) : "Informe individual de evaluación") +
+      "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) + " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") +
       "</p></div><div class='print-brand'>Una idea del Profesor Alberto Delgado</div></div>" +
-
-      "<div class='competency-title'><h2>Notas por competencia</h2></div>" +
-      "<table class='competency-table'><thead><tr><th>Competencia</th><th>Evaluadas</th><th>Puntuación</th><th>%</th><th>Nota / 10</th></tr></thead><tbody>" +
-      competencyRows + "</tbody></table>" +
-
-      "<div class='print-grade'>" +
-      "<div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) + "</strong></div>" +
-      "<div><span>NOTA</span><strong>" + format(grade) + " / 10</strong></div>" +
-      "<div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div>" +
-      "</div>" +
-
-      "<table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" +
-      rows + "</tbody></table>" +
-
-      "<div class='print-footer'>Puntuación: <strong>" + format(t.got) + " / " + format(t.max) +
-      "</strong> &nbsp;&nbsp; · &nbsp;&nbsp; Nota: <strong>" + format(grade) + " / 10</strong></div>";
-
+      "<div class='print-grade'><div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) +
+      "</strong></div><div><span>NOTA PROVISIONAL / 10</span><strong>" + format(grade) + " / 10</strong></div><div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div></div>" +
+      pendingNote + summarySection + rubricSection + observationsSection +
+      "<div class='print-footer'>Informe generado desde la rúbrica · " + escapeHTML(student.name) + "</div>";
     openPrint(content, "student");
   } catch (error) {
     console.error("Error al generar el PDF del alumno:", error);
     notify("Error al generar el PDF: " + (error.message || "revisa la consola"));
   }
+}
+function printClassReport() {
+  if (!state.students.length) { notify("Añade alumnado antes de generar el informe del grupo."); return; }
+  const rows = [];
+  state.students.forEach(student => {
+    [...grouped()].forEach(([criterion, items]) => {
+      const result = criterionEvidence(student, items, criterion);
+      rows.push("<tr><td><strong>" + escapeHTML(student.name) + "</strong></td><td>" + escapeHTML(criterion) + "</td><td>" + result.evaluated + " / " + result.total + "</td><td>" + format(result.got) + " / " + format(result.maxEvaluated) + "</td><td>" + (result.pct === null ? "—" : format(result.pct) + "%") + "</td><td>" + escapeHTML(result.status) + "</td></tr>");
+    });
+  });
+  const assessed = state.students.reduce((sum, student) => sum + totals(student).evaluated, 0);
+  const possible = state.students.length * state.rubric.length;
+  const content = "<div class='print-header'><div><h1>Informe de evaluación del grupo</h1><p><strong>Grupo:</strong> " + escapeHTML(state.group || "—") + " &nbsp; · &nbsp; <strong>Actividad:</strong> " + escapeHTML(state.activity || "Rúbrica de evaluación") + "</p></div><div class='print-brand'>Una idea del Profesor Alberto Delgado</div></div>" +
+    "<div class='print-grade'><div><span>ALUMNADO</span><strong>" + state.students.length + "</strong></div><div><span>EVIDENCIAS EVALUADAS</span><strong>" + assessed + " / " + possible + "</strong></div><div><span>COBERTURA</span><strong>" + format(possible ? assessed / possible * 100 : 0) + "%</strong></div></div>" +
+    "<div class='competency-title'><h2>Resultados por alumno y criterio</h2></div><table class='print-rubric'><thead><tr><th>Alumno/a</th><th>Criterio</th><th>Evidencias</th><th>Puntuación evaluada</th><th>Logro</th><th>Lectura orientativa</th></tr></thead><tbody>" + rows.join("") + "</tbody></table>" +
+    "<div class='print-note'>Los porcentajes por criterio se calculan solo con los aspectos evaluados. Las etiquetas son orientativas y no equivalen automáticamente a niveles oficiales de adquisición competencial.</div>" +
+    "<div class='print-footer'>Informe de grupo · Una idea del Profesor Alberto Delgado</div>";
+  openPrint(content, "student");
 }
 
 function openPrint(content, type) {
