@@ -519,6 +519,10 @@ function openPrint(content, type) {
     "#printOverlay .selected-print{background:#eadde1!important;color:#542333;font-weight:800;box-shadow:inset 0 0 0 1px #b77d8d}" +
     "#printOverlay .print-obtained{text-align:center;font-weight:800;color:#542333;background:#f5eee8}" +
     "#printOverlay .print-footer{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:9px;padding:7px 10px;background:#f5eee8;border-top:2px solid #7b3045;color:#542333;font-size:9px}" +
+    "#printOverlay .print-note{font-size:8px;color:#6b555b;margin:5px 0 8px;padding:6px 8px;background:#faf4f5;border-left:3px solid #b77d8d}" +
+    "#printOverlay .print-observations{margin-top:10px;padding:10px 12px;border:1px solid #d8c5c9;background:#faf8f7;break-inside:avoid}" +
+    "#printOverlay .print-observations h2{font-size:10px;text-transform:uppercase;color:#542333;margin:0 0 5px}" +
+    "#printOverlay .print-observations p{font-size:9px;line-height:1.4;margin:0;white-space:normal}" +
     "@media print{body.printing>*:not(#printOverlay){display:none!important}#printOverlay{position:static!important;overflow:visible!important;padding:0!important;width:auto!important;height:auto!important}#printOverlay .print-rubric tbody tr:nth-child(even){background:#faf9f8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}#printOverlay .print-header,#printOverlay .competency-table th,#printOverlay .print-grade>div,#printOverlay .print-rubric th,#printOverlay .selected-print,#printOverlay .print-obtained,#printOverlay .print-footer{-webkit-print-color-adjust:exact;print-color-adjust:exact}}";
 
   document.head.appendChild(style);
