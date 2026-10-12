@@ -340,6 +340,20 @@ function renderResults() {
   });
   table.appendChild(body); tableCard.appendChild(table); grid.append(hero, tableCard); box.appendChild(grid);
 
+  const actions = document.createElement("div"); actions.className = "card backup-card";
+  actions.innerHTML = "<h2>Informes y exportación</h2><p>Personaliza el PDF individual o genera un resumen de toda la clase.</p>";
+  const options = document.createElement("div"); options.className = "report-options";
+  options.innerHTML = "<label><input type='checkbox' id='reportIncludeSummary' checked> Resumen por criterio</label><label><input type='checkbox' id='reportIncludeRubric' checked> Tabla detallada de la rúbrica</label><label class='report-observation'><span>Retroalimentación y observaciones para el alumno</span><textarea id='reportObservations' rows='8' placeholder='Genera una propuesta basada en las evidencias y edítala antes de incluirla en el PDF…'></textarea></label><button type='button' class='ghost-btn' id='generateFeedbackBtn'>Generar propuesta de retroalimentación</button><p class='table-note'>La propuesta se construye con los niveles seleccionados. Revísala y edítala antes de generar el informe.</p>";
+  actions.appendChild(options);
+  $("#generateFeedbackBtn").onclick = () => {
+    $("#reportObservations").value = generateFeedbackDraft(student);
+    notify("Propuesta de retroalimentación generada. Revísala antes de exportar.");
+  };
+  const buttons = document.createElement("div"); buttons.className = "button-row";
+  [["PDF individual",printStudentRubric],["PDF del grupo",printClassReport],["CSV del alumno",()=>downloadStudent(student)],["CSV de toda la clase",downloadClass],["Sesión JSON",downloadJSON]].forEach(([label,fn])=>{const b=document.createElement("button");b.className="ghost-btn";b.textContent=label;b.onclick=fn;buttons.appendChild(b)});
+  actions.appendChild(buttons); box.appendChild(actions);
+
+
   const groupCard = document.createElement("div"); groupCard.className = "card results-table-wrap group-analysis";
   groupCard.innerHTML = "<h2>Visión general del grupo</h2><p class='table-note'>Promedio del porcentaje de logro de cada alumno que tenga evidencias en el criterio. Se muestra también cuántos alumnos han sido evaluados.</p>";
   const groupTable = document.createElement("table"); groupTable.className = "results-table";
@@ -356,18 +370,6 @@ function renderResults() {
   });
   groupTable.appendChild(groupBody); groupCard.appendChild(groupTable); box.appendChild(groupCard);
 
-  const actions = document.createElement("div"); actions.className = "card backup-card";
-  actions.innerHTML = "<h2>Informes y exportación</h2><p>Personaliza el PDF individual o genera un resumen de toda la clase.</p>";
-  const options = document.createElement("div"); options.className = "report-options";
-  options.innerHTML = "<label><input type='checkbox' id='reportIncludeSummary' checked> Resumen por criterio</label><label><input type='checkbox' id='reportIncludeRubric' checked> Tabla detallada de la rúbrica</label><label class='report-observation'><span>Retroalimentación y observaciones para el alumno</span><textarea id='reportObservations' rows='8' placeholder='Genera una propuesta basada en las evidencias y edítala antes de incluirla en el PDF…'></textarea></label><button type='button' class='ghost-btn' id='generateFeedbackBtn'>Generar propuesta de retroalimentación</button><p class='table-note'>La propuesta se construye con los niveles seleccionados. Revísala y edítala antes de generar el informe.</p>";
-  actions.appendChild(options);
-  $("#generateFeedbackBtn").onclick = () => {
-    $("#reportObservations").value = generateFeedbackDraft(student);
-    notify("Propuesta de retroalimentación generada. Revísala antes de exportar.");
-  };
-  const buttons = document.createElement("div"); buttons.className = "button-row";
-  [["PDF individual",printStudentRubric],["PDF del grupo",printClassReport],["CSV del alumno",()=>downloadStudent(student)],["CSV de toda la clase",downloadClass],["Sesión JSON",downloadJSON]].forEach(([label,fn])=>{const b=document.createElement("button");b.className="ghost-btn";b.textContent=label;b.onclick=fn;buttons.appendChild(b)});
-  actions.appendChild(buttons); box.appendChild(actions);
 }
 function renderDashboard() {
   const host = $("#dashboardContent");
