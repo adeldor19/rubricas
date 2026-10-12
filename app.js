@@ -24,6 +24,96 @@ function splitLine(line, delimiter) {
   out.push(value);
   return out;
 }
+
+const EXPECTED_HEADERS = [
+  "Criterio","Pregunta","Aspecto evaluado",
+  "Nivel insuficiente (0%)","Puntos 0%",
+  "Nivel básico (25%)","Puntos 25%",
+  "Nivel adecuado (50%)","Puntos 50%",
+  "Nivel notable (75%)","Puntos 75%",
+  "Nivel excelente (100%)","Puntos 100%",
+  "Máximo","Puntuación obtenida"
+];
+function parseNumeric(value) {
+  const raw = clean(value);
+  if (!raw) return null;
+  const normalized = raw.replace(/\s/g, "").replace(/\.(?=\d{3}(?:\D|$))/g, "").replace(",", ".");
+  if (!/^-?\d+(?:\.\d+)?$/.test(normalized)) return null;
+  const result = Number(normalized);
+  return Number.isFinite(result) ? result : null;
+}
+function validateCSV(text) {
+  const errors = [], warnings = [];
+  const lines = String(text || "").replace(/^\uFEFF/, "").replace(/\r/g, "").split("\n").filter(line => line.trim());
+  if (!lines.length) return { errors: ["Pega el contenido CSV para empezar."], warnings: [], rows: 0, total: 0 };
+  const delimiter = (lines[0].match(/;/g) || []).length >= (lines[0].match(/,/g) || []).length ? ";" : ",";
+  const headers = splitLine(lines[0], delimiter).map(clean);
+  if (headers.length !== EXPECTED_HEADERS.length || headers.some((h, i) => h !== EXPECTED_HEADERS[i])) {
+    errors.push("La cabecera debe contener exactamente las 15 columnas esperadas, en el orden indicado.");
+    const missing = EXPECTED_HEADERS.filter(h => !headers.includes(h));
+    if (missing.length) warnings.push("Faltan columnas: " + missing.join(", ") + ".");
+    const extra = headers.filter(h => !EXPECTED_HEADERS.includes(h));
+    if (extra.length) warnings.push("Hay columnas no reconocidas: " + extra.join(", ") + ".");
+    const wrongOrder = headers.length === EXPECTED_HEADERS.length && headers.every(h => EXPECTED_HEADERS.includes(h));
+    if (wrongOrder) warnings.push("Los nombres de las columnas están, pero su orden no coincide con el formato requerido.");
+  }
+  const duplicates = headers.filter((h, i) => headers.indexOf(h) !== i);
+  if (duplicates.length) errors.push("Hay encabezados duplicados: " + [...new Set(duplicates)].join(", ") + ".");
+  if (lines.length < 2) errors.push("El CSV debe contener al menos una fila de rúbrica además de la cabecera.");
+  const index = Object.fromEntries(headers.map((h, i) => [h, i]));
+  const seen = new Set();
+  let total = 0;
+  const pointPairs = [["Puntos 0%",0],["Puntos 25%",25],["Puntos 50%",50],["Puntos 75%",75],["Puntos 100%",100]];
+  lines.slice(1).forEach((line, i) => {
+    const rowNum = i + 2, row = splitLine(line, delimiter);
+    if (row.length !== headers.length) {
+      errors.push("Fila " + rowNum + ": contiene " + row.length + " campos; se esperaban " + headers.length + ".");
+      return;
+    }
+    const get = h => clean(row[index[h]]);
+    ["Criterio","Pregunta","Aspecto evaluado"].forEach(h => {
+      if (!get(h)) errors.push("Fila " + rowNum + ": el campo «" + h + "» está vacío.");
+    });
+    ["Nivel insuficiente (0%)","Nivel básico (25%)","Nivel adecuado (50%)","Nivel notable (75%)","Nivel excelente (100%)"].forEach(h => {
+      if (!get(h)) warnings.push("Fila " + rowNum + ": falta el descriptor «" + h + "».");
+    });
+    const max = parseNumeric(get("Máximo"));
+    if (max === null || max <= 0) errors.push("Fila " + rowNum + ": «Máximo» debe ser un número mayor que cero.");
+    else total += max;
+    const points = pointPairs.map(([h,pct]) => ({header:h,pct,value:parseNumeric(get(h))}));
+    points.forEach(p => {
+      if (p.value === null) errors.push("Fila " + rowNum + ": «" + p.header + "» debe contener una puntuación numérica.");
+    });
+    if (points.every(p => p.value !== null) && max !== null && max > 0) {
+      points.forEach(p => {
+        const expected = max * p.pct / 100;
+        if (Math.abs(p.value - expected) > 0.011) errors.push("Fila " + rowNum + ": " + p.header + " debería ser " + format(expected) + " para un máximo de " + format(max) + ".");
+      });
+      if (points[0].value !== 0) errors.push("Fila " + rowNum + ": la puntuación del nivel 0 % debe ser 0.");
+      for (let j = 1; j < points.length; j++) {
+        if (points[j].value < points[j-1].value) errors.push("Fila " + rowNum + ": las puntuaciones de los niveles deben ser crecientes.");
+      }
+      if (Math.abs(points[4].value - max) > 0.011) errors.push("Fila " + rowNum + ": «Puntos 100%» debe coincidir con «Máximo».");
+    }
+    if (get("Puntuación obtenida")) warnings.push("Fila " + rowNum + ": «Puntuación obtenida» no está vacía; se recomienda dejarla en blanco en la plantilla.");
+    const key = [get("Pregunta").toLowerCase(), get("Aspecto evaluado").toLowerCase()].join("|");
+    if (get("Pregunta") && get("Aspecto evaluado") && seen.has(key)) warnings.push("Fila " + rowNum + ": parece repetir una combinación de pregunta y aspecto evaluado.");
+    seen.add(key);
+  });
+  if (lines.length > 1 && total > 0) warnings.push("La puntuación máxima total de la rúbrica es " + format(total) + " puntos. Comprueba que coincide con la actividad.");
+  return { errors:[...new Set(errors)], warnings:[...new Set(warnings)], rows:Math.max(0,lines.length-1), total };
+}
+function renderValidation(result) {
+  const panel = $("#validationPanel");
+  if (!panel) return;
+  if (!$("#csvInput").value.trim()) { panel.innerHTML = ""; panel.className = "validation-panel hidden"; return; }
+  panel.className = "validation-panel " + (result.errors.length ? "has-errors" : result.warnings.length ? "has-warnings" : "is-valid");
+  const heading = result.errors.length ? "Hay errores que debes corregir" : result.warnings.length ? "CSV válido con advertencias" : "CSV validado correctamente";
+  const messages = [...result.errors.map(x => ({type:"error",text:x})), ...result.warnings.map(x => ({type:"warning",text:x}))];
+  panel.innerHTML = "<div class='validation-heading'><strong>" + escapeHTML(heading) + "</strong><span>" + result.rows + " filas · " + format(result.total) + " puntos máximos</span></div>" +
+    (messages.length ? "<ul>" + messages.map(m => "<li class='" + m.type + "'>" + escapeHTML(m.text) + "</li>").join("") + "</ul>" : "<p>Cabecera, estructura y puntuaciones correctas.</p>");
+}
+
 function parseCSV(text) {
   const lines = clean(text).split("\n").filter(x => x.trim());
   if (lines.length < 2) throw new Error("El CSV debe contener una cabecera y al menos una pregunta.");
@@ -398,6 +488,9 @@ function downloadJSON() {
   download("rubricas_sesion.json",JSON.stringify({version:3,exportedAt:new Date().toISOString(),csv:$("#csvInput").value,rubric:state.rubric,students:state.students,active:state.active,group:state.group,activity:state.activity},null,2),"application/json;charset=utf-8");
 }
 function loadRubric() {
+  const validation = validateCSV($("#csvInput").value);
+  renderValidation(validation);
+  if (validation.errors.length) { notify("Corrige los errores del CSV antes de cargarlo."); return; }
   try {
     state.rubric = parseCSV($("#csvInput").value); state.students=[]; state.active=null; state.quick=0; state.group=""; state.activity=""; save();
     $("#classNav").classList.remove("hidden"); view("classView"); renderStudents(); notify("Rúbrica cargada: "+state.rubric.length+" preguntas");
@@ -414,8 +507,13 @@ function restore() {
 function setup() {
   $("#copyPromptBtn").onclick=async()=>{try{await navigator.clipboard.writeText($("#rubricPrompt").value);notify("Prompt copiado al portapapeles")}catch{notify("No se ha podido copiar automáticamente")}};
   $("#loadBtn").onclick=loadRubric;
-  $("#exampleBtn").onclick=()=>{$("#csvInput").value=EXAMPLE_CSV;$("#parseStatus").textContent="Ejemplo cargado."};
-  $("#csvInput").oninput=()=>{try{$("#parseStatus").textContent="CSV válido · "+parseCSV($("#csvInput").value).length+" preguntas detectadas"}catch{$("#parseStatus").textContent=$("#csvInput").value.trim()?"Revisa el formato del CSV.":"Esperando CSV…"}};
+  $("#exampleBtn").onclick=()=>{$("#csvInput").value=EXAMPLE_CSV;$("#csvInput").dispatchEvent(new Event("input"));};
+  $("#csvInput").oninput=()=>{
+    const result = validateCSV($("#csvInput").value);
+    renderValidation(result);
+    $("#parseStatus").textContent = !$("#csvInput").value.trim() ? "Esperando CSV…" : result.errors.length ? result.errors.length + " error(es) · " + result.rows + " filas detectadas" : result.warnings.length ? "Estructura correcta · revisa las advertencias" : "CSV validado · " + result.rows + " filas detectadas";
+    $("#loadBtn").disabled = result.errors.length > 0;
+  };
   $("#resetBtn").onclick=()=>{if(state.rubric.length&&!confirm("¿Empezar una nueva rúbrica? Se borrará la sesión de este navegador."))return;localStorage.removeItem("rubricas-app-v3");location.reload()};
   document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{if(b.dataset.view==="promptView" || state.rubric.length)view(b.dataset.view)});
   $("#addStudentBtn").onclick=()=>{$("#studentAddBox").classList.remove("hidden");$("#newStudentName").focus()};
