@@ -422,7 +422,7 @@ function generateFeedbackDraft(student) {
   const sel = selections(student), evaluated = state.rubric.filter(q => sel.has(q.id));
   if (!evaluated.length) return "Todavía no hay aspectos evaluados suficientes para redactar una devolución basada en evidencias. Evalúa algunos aspectos de la rúbrica y vuelve a generar la propuesta.";
   const strengths = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) >= 75), improvements = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) <= 25), pending = state.rubric.filter(q => !sel.has(q.id));
-  const list = items => items.map(q => "• " + q.question + ": " + q.aspect).join("\n");
+  const list = items => items.map(q => "• " + q.question + ": " + q.aspect + "\n  Evidencia seleccionada: " + (sel.get(q.id)?.description || "nivel registrado en la rúbrica")).join("\n");
   let draft = "RETROALIMENTACIÓN · " + student.name + "\n\n";
   draft += strengths.length ? "FORTALEZAS OBSERVADAS\n" + list(strengths) + "\n\n" : "FORTALEZAS OBSERVADAS\nEn los aspectos evaluados no hay todavía evidencias seleccionadas en los niveles superiores de la rúbrica. Revisa los descriptores y las evidencias antes de concretar esta valoración.\n\n";
   draft += improvements.length ? "ASPECTOS QUE CONVIENE REVISAR\n" + list(improvements) + "\n\n" : "ASPECTOS QUE CONVIENE REVISAR\nNo se han detectado aspectos evaluados en los niveles iniciales de la rúbrica.\n\n";
