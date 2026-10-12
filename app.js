@@ -345,8 +345,8 @@ function renderResults() {
   const options = document.createElement("div"); options.className = "report-options";
   options.innerHTML = "<label><input type='checkbox' id='reportIncludeSummary' checked> Resumen por criterio</label><label><input type='checkbox' id='reportIncludeRubric' checked> Tabla detallada de la rúbrica</label><label class='report-observation'><span>Retroalimentación y observaciones para el alumno</span><textarea id='reportObservations' rows='8' placeholder='Genera una propuesta basada en las evidencias y edítala antes de incluirla en el PDF…'></textarea></label><button type='button' class='ghost-btn' id='generateFeedbackBtn'>Generar propuesta de retroalimentación</button><p class='table-note'>La propuesta se construye con los niveles seleccionados. Revísala y edítala antes de generar el informe.</p>";
   actions.appendChild(options);
-  $("#generateFeedbackBtn").onclick = () => {
-    $("#reportObservations").value = generateFeedbackDraft(student);
+  options.querySelector("#generateFeedbackBtn").onclick = () => {
+    options.querySelector("#reportObservations").value = generateFeedbackDraft(student);
     notify("Propuesta de retroalimentación generada. Revísala antes de exportar.");
   };
   const buttons = document.createElement("div"); buttons.className = "button-row";
