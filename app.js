@@ -420,15 +420,30 @@ function renderDashboard() {
   }));
 }
 function generateFeedbackDraft(student) {
-  const sel = selections(student), evaluated = state.rubric.filter(q => sel.has(q.id));
-  if (!evaluated.length) return "Todavía no hay aspectos evaluados suficientes para redactar una devolución basada en evidencias. Evalúa algunos aspectos de la rúbrica y vuelve a generar la propuesta.";
-  const strengths = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) >= 75), improvements = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) <= 25), pending = state.rubric.filter(q => !sel.has(q.id));
-  const list = items => items.map(q => "• " + q.question + ": " + q.aspect + "\n  Evidencia seleccionada: " + (sel.get(q.id)?.description || "nivel registrado en la rúbrica")).join("\n");
-  let draft = "RETROALIMENTACIÓN · " + student.name + "\n\n";
-  draft += strengths.length ? "FORTALEZAS OBSERVADAS\n" + list(strengths) + "\n\n" : "FORTALEZAS OBSERVADAS\nEn los aspectos evaluados no hay todavía evidencias seleccionadas en los niveles superiores de la rúbrica. Revisa los descriptores y las evidencias antes de concretar esta valoración.\n\n";
-  draft += improvements.length ? "ASPECTOS QUE CONVIENE REVISAR\n" + list(improvements) + "\n\n" : "ASPECTOS QUE CONVIENE REVISAR\nNo se han detectado aspectos evaluados en los niveles iniciales de la rúbrica.\n\n";
-  draft += improvements.length ? "SIGUIENTE PASO\nRevisa los aspectos indicados y contrasta tu trabajo con los descriptores de la rúbrica. Corrige o completa las evidencias señaladas y vuelve a comprobarlas.\n\n" : "SIGUIENTE PASO\nMantén las estrategias que te han funcionado y comprueba que puedes aplicarlas en nuevas tareas.\n\n";
-  draft += pending.length ? "PENDIENTE DE EVALUAR\nQuedan " + pending.length + " aspecto(s) sin evaluar. Esta propuesta es provisional y no incluye conclusiones sobre esas evidencias." : "La propuesta se basa en todos los aspectos de esta rúbrica que se han evaluado.";
+  const sel = selections(student);
+  const evaluated = state.rubric.filter(q => sel.has(q.id));
+  if (!evaluated.length) return "Aún no hay evidencias evaluadas suficientes para redactar una devolución.";
+
+  const strengths = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) >= 75).slice(0, 2);
+  const improvements = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) <= 25).slice(0, 2);
+  const pending = state.rubric.filter(q => !sel.has(q.id));
+  const itemText = q => q.question + " — " + (sel.get(q.id)?.description || "nivel seleccionado");
+
+  let draft = "RETROALIMENTACIÓN · " + student.name + "\n";
+  if (strengths.length) {
+    draft += "\nPUNTOS FUERTES\n" + strengths.map(itemText).map(x => "• " + x).join("\n") + "\n";
+  }
+  if (improvements.length) {
+    draft += "\nPARA MEJORAR\n" + improvements.map(itemText).map(x => "• " + x).join("\n") + "\n";
+  }
+  if (!strengths.length && !improvements.length) {
+    draft += "\nSigue trabajando y utiliza los descriptores de la rúbrica para identificar qué puedes consolidar.\n";
+  }
+  draft += "\nPRÓXIMO PASO\n";
+  draft += improvements.length
+    ? "Revisa los aspectos señalados y mejora esas evidencias en la próxima tarea."
+    : "Consolida lo aprendido y aplícalo en una nueva tarea.";
+  if (pending.length) draft += "\n\nPendiente: " + pending.length + " aspecto(s) sin evaluar; la valoración es provisional.";
   return draft;
 }
 function renderEvaluation() {
