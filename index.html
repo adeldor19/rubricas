@@ -9,7 +9,7 @@
   <div class="brand"><div class="brand-mark">R</div><div><div class="brand-title">Rúbricas</div><div class="brand-subtitle">Profesor Alberto Delgado · Evaluación interactiva</div></div></div>
   <nav class="main-nav" id="mainNav">
     <button class="nav-btn active" data-view="importView">Rúbrica</button><button class="nav-btn" data-view="promptView">Generar rúbrica</button>
-    <button class="nav-btn hidden" id="classNav" data-view="classView">Alumnado</button>
+    <button class="nav-btn hidden" id="classNav" data-view="classView">Alumnado</button><button class="nav-btn hidden" id="dashboardNav" data-view="dashboardView">Panel de grupo</button>
   </nav>
   <div class="top-actions"><button id="resetBtn" class="ghost-btn">Nueva rúbrica</button></div>
 </header>
@@ -41,6 +41,16 @@
     <div class="button-row hidden" id="studentPasteActions"><button id="saveStudentListBtn" class="primary-btn">Añadir lista</button><button id="cancelStudentListBtn" class="ghost-btn">Cancelar</button></div>
   </div>
   <div id="studentGrid" class="student-grid"></div>
+</section>
+
+<section id="dashboardView" class="view hidden">
+  <div class="page-title"><div><span class="eyebrow">VISIÓN GLOBAL</span><h1>Panel de grupo</h1><p>Consulta la cobertura de evaluación y localiza evidencias pendientes sin confundir el estado de evaluación con el nivel de adquisición competencial.</p></div></div>
+  <div class="card dashboard-filters">
+    <div class="dashboard-filter"><label for="dashboardStudentFilter">ALUMNADO</label><select id="dashboardStudentFilter"><option value="all">Todo el alumnado</option></select></div>
+    <div class="dashboard-filter"><label for="dashboardCriterionFilter">CRITERIO</label><select id="dashboardCriterionFilter"><option value="all">Todos los criterios</option></select></div>
+    <div class="dashboard-filter"><label for="dashboardStatusFilter">ESTADO</label><select id="dashboardStatusFilter"><option value="all">Todos los estados</option><option value="none">Sin evaluar</option><option value="partial">Evaluación parcial</option><option value="complete">Evaluación completa</option></select></div>
+  </div>
+  <div id="dashboardContent"></div>
 </section>
 
 <section id="rubricView" class="view hidden">
@@ -167,5 +177,5 @@ Antes de entregar el CSV, verifica:
   </div>
 </section></main>
 <footer class="site-footer">Una idea del Profesor Alberto Delgado</footer><div id="printArea"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="app.js?v=20261012-6"></script>
+<script src="app.js?v=20261012-7"></script>
 </body></html>
