@@ -176,14 +176,21 @@ function totals(student) {
   return { max, got, evaluated, total: state.rubric.length, pct: max ? got / max * 100 : 0, progress: state.rubric.length ? evaluated / state.rubric.length * 100 : 0 };
 }
 function save() {
-  localStorage.setItem("rubricas-app-v3", JSON.stringify({
-    csv: $("#csvInput")?.value || "",
-    rubric: state.rubric,
-    students: state.students,
-    active: state.active,
-    group: state.group,
-    activity: state.activity
-  }));
+  try {
+    localStorage.setItem("rubricas-app-v3", JSON.stringify({
+      csv: $("#csvInput")?.value || "",
+      rubric: state.rubric,
+      students: state.students,
+      active: state.active,
+      group: state.group,
+      activity: state.activity
+    }));
+    const status = $("#saveStatus");
+    if (status) { status.textContent = "Guardado automáticamente en este navegador"; status.classList.remove("save-error"); }
+  } catch (error) {
+    const status = $("#saveStatus");
+    if (status) { status.textContent = "No se pudo guardar automáticamente"; status.classList.add("save-error"); }
+  }
 }
 function notify(message) {
   const box = $("#toast"); box.textContent = message; box.classList.add("show");
@@ -292,9 +299,12 @@ function renderQuick() {
   const previous = document.createElement("button"); previous.className = "ghost-btn"; previous.textContent = "← Anterior";
   const counter = document.createElement("div"); counter.className = "quick-progress"; counter.textContent = (state.quick + 1) + " / " + state.rubric.length;
   const next = document.createElement("button"); next.className = "primary-btn"; next.textContent = "Siguiente →";
-  previous.onclick = () => { state.quick = Math.max(0, state.quick - 1); renderQuick(); };
-  next.onclick = () => { state.quick = Math.min(state.rubric.length - 1, state.quick + 1); renderQuick(); };
-  nav.append(previous, counter, next); box.append(head, levels, nav);
+  previous.disabled = state.quick === 0; previous.onclick = () => { state.quick = Math.max(0, state.quick - 1); renderQuick(); };
+  next.disabled = state.quick >= state.rubric.length - 1; next.onclick = () => { state.quick = Math.min(state.rubric.length - 1, state.quick + 1); renderQuick(); };
+  nav.append(previous, counter, next);
+  const shortcuts = document.createElement("p"); shortcuts.className = "quick-shortcuts";
+  shortcuts.textContent = "Atajos: 1–5 para elegir un nivel · ← → para moverte entre preguntas. La selección se guarda automáticamente.";
+  box.append(head, levels, nav, shortcuts);
 }
 function renderResults() {
   const box = $("#resultsContainer"); box.innerHTML = ""; box.classList.remove("hidden");
@@ -528,5 +538,22 @@ function setup() {
   $("#resultsBtn").onclick=()=>{state.mode="results";renderEvaluation()};
   $("#groupName").oninput=e=>{state.group=e.target.value;save()};
   $("#activityName").oninput=e=>{state.activity=e.target.value;save()};
+  document.addEventListener("keydown", e => {
+    if (state.mode !== "quick" || $("#rubricView").classList.contains("hidden")) return;
+    if (e.target && (["INPUT","TEXTAREA","SELECT"].includes(e.target.tagName) || e.target.isContentEditable)) return;
+    if (e.key >= "1" && e.key <= "5") {
+      const question = state.rubric[state.quick];
+      const level = question?.levels[Number(e.key) - 1];
+      if (!question || !level) return;
+      e.preventDefault();
+      choose(question.id, level.key);
+      if (state.quick < state.rubric.length - 1) state.quick++;
+      renderQuick();
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault(); state.quick = Math.min(state.rubric.length - 1, state.quick + 1); renderQuick();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault(); state.quick = Math.max(0, state.quick - 1); renderQuick();
+    }
+  });
 }
 setup(); restore();
