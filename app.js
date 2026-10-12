@@ -168,6 +168,17 @@ function competencyResults(student) {
   state.rubric.forEach(q => { const name = q.competency || q.criterion || "Sin competencia"; if (!groups.has(name)) groups.set(name, []); groups.get(name).push(q); });
   return [...groups].map(([name, items]) => { const max = items.reduce((s,q)=>s+q.max,0); const got = items.reduce((s,q)=>s+(sel.get(q.id)?.points||0),0); return {name,max,got,pct:max?got/max*100:0,evaluated:items.filter(q=>sel.has(q.id)).length,total:items.length}; });
 }
+function criterionEvidence(student, items, criterion) {
+  const sel = selections(student);
+  const evaluatedItems = items.filter(q => sel.has(q.id));
+  const pendingItems = items.filter(q => !sel.has(q.id));
+  const maxEvaluated = evaluatedItems.reduce((sum, q) => sum + q.max, 0);
+  const got = evaluatedItems.reduce((sum, q) => sum + (sel.get(q.id)?.points || 0), 0);
+  const pct = maxEvaluated ? got / maxEvaluated * 100 : null;
+  let status = "Sin evidencias";
+  if (pct !== null) status = pct < 50 ? "Evidencia inicial" : pct < 75 ? "Evidencia parcial" : pct < 90 ? "Evidencia consistente" : "Evidencia sólida";
+  return { criterion, items, evaluatedItems, pendingItems, evaluated:evaluatedItems.length, total:items.length, got, maxEvaluated, pct, status };
+}
 function totals(student) {
   const sel = selections(student);
   const max = state.rubric.reduce((a, q) => a + q.max, 0);
@@ -309,27 +320,50 @@ function renderQuick() {
 function renderResults() {
   const box = $("#resultsContainer"); box.innerHTML = ""; box.classList.remove("hidden");
   $("#rubricContainer").classList.add("hidden"); $("#quickContainer").classList.add("hidden");
-  $("#modeHelp").textContent = "Resumen del alumno";
+  $("#modeHelp").textContent = "Evidencias por criterio y resultados del alumno";
   const student = current(), t = totals(student), sel = selections(student);
   const grid = document.createElement("div"); grid.className = "results-grid";
   const hero = document.createElement("div"); hero.className = "result-hero card";
-  hero.innerHTML = "<span class='eyebrow'>RESULTADO</span><strong>" + format(t.pct) + "%</strong><span>" + format(t.got) + " / " + format(t.max) + " puntos</span><div class='result-progress'><div style='width:" + t.pct + "%'></div></div>";
+  hero.innerHTML = "<span class='eyebrow'>RESULTADO GLOBAL</span><strong>" + format(t.pct) + "%</strong><span>" + format(t.got) + " / " + format(t.max) + " puntos máximos</span><div class='result-progress'><div style='width:" + t.pct + "%'></div></div><p class='result-coverage'>" + t.evaluated + " de " + t.total + " aspectos evaluados. Los aspectos pendientes cuentan como no puntuados en el resultado global.</p>";
   const tableCard = document.createElement("div"); tableCard.className = "card results-table-wrap";
-  tableCard.innerHTML = "<h2>Resultados por criterio</h2>";
+  tableCard.innerHTML = "<h2>Evidencias por criterio</h2><p class='table-note'>El porcentaje de cada criterio se calcula solo con los aspectos ya evaluados. Estos tramos son orientativos, no niveles oficiales del currículo.</p>";
   const table = document.createElement("table"); table.className = "results-table";
-  table.innerHTML = "<thead><tr><th>Criterio</th><th>Evaluadas</th><th>Puntuación</th><th>Porcentaje</th></tr></thead>";
+  table.innerHTML = "<thead><tr><th>Criterio</th><th>Evidencias</th><th>Puntuación evaluada</th><th>Logro</th><th>Lectura orientativa</th></tr></thead>";
   const body = document.createElement("tbody");
   grouped().forEach((items, criterion) => {
-    const max = items.reduce((a,q)=>a+q.max,0), got = items.reduce((a,q)=>a+(sel.get(q.id)?.points||0),0);
+    const result = criterionEvidence(student, items, criterion);
+    const evidenceNames = result.evaluatedItems.map(q => q.question).join(", ") || "Ninguna todavía";
+    const pending = result.pendingItems.length ? "<small class='pending-note'>" + result.pendingItems.length + " pendiente(s)</small>" : "<small class='pending-note'>Todo evaluado</small>";
+    const pct = result.pct === null ? "—" : format(result.pct) + "%";
     const row = document.createElement("tr");
-    row.innerHTML = "<td><strong>"+escapeHTML(criterion)+"</strong></td><td>"+items.filter(q=>sel.has(q.id)).length+" / "+items.length+"</td><td>"+format(got)+" / "+format(max)+"</td><td><strong>"+format(max?got/max*100:0)+"%</strong></td>";
+    row.innerHTML = "<td><strong>" + escapeHTML(criterion) + "</strong></td><td><span class='evidence-list'>" + escapeHTML(evidenceNames) + "</span>" + pending + "</td><td>" + format(result.got) + " / " + format(result.maxEvaluated) + "</td><td><strong>" + pct + "</strong></td><td><span class='evidence-status'>" + escapeHTML(result.status) + "</span></td>";
     body.appendChild(row);
   });
   table.appendChild(body); tableCard.appendChild(table); grid.append(hero, tableCard); box.appendChild(grid);
+
+  const groupCard = document.createElement("div"); groupCard.className = "card results-table-wrap group-analysis";
+  groupCard.innerHTML = "<h2>Visión general del grupo</h2><p class='table-note'>Promedio del porcentaje de logro de cada alumno que tenga evidencias en el criterio. Se muestra también cuántos alumnos han sido evaluados.</p>";
+  const groupTable = document.createElement("table"); groupTable.className = "results-table";
+  groupTable.innerHTML = "<thead><tr><th>Criterio</th><th>Alumnado con evidencias</th><th>Promedio de logro</th><th>Aspectos evaluados</th></tr></thead>";
+  const groupBody = document.createElement("tbody");
+  grouped().forEach((items, criterion) => {
+    const evidence = state.students.map(st => criterionEvidence(st, items, criterion)).filter(x => x.pct !== null);
+    const average = evidence.length ? evidence.reduce((sum, x) => sum + x.pct, 0) / evidence.length : null;
+    const assessed = evidence.reduce((sum, x) => sum + x.evaluated, 0);
+    const totalPossible = state.students.length * items.length;
+    const row = document.createElement("tr");
+    row.innerHTML = "<td><strong>" + escapeHTML(criterion) + "</strong></td><td>" + evidence.length + " / " + state.students.length + "</td><td><strong>" + (average === null ? "—" : format(average) + "%") + "</strong></td><td>" + assessed + " / " + totalPossible + "</td>";
+    groupBody.appendChild(row);
+  });
+  groupTable.appendChild(groupBody); groupCard.appendChild(groupTable); box.appendChild(groupCard);
+
   const actions = document.createElement("div"); actions.className = "card backup-card";
-  actions.innerHTML = "<h2>Exportación y copia de seguridad</h2><p>Guarda los resultados o una copia completa de esta sesión.</p>";
+  actions.innerHTML = "<h2>Informes y exportación</h2><p>Personaliza el PDF individual o genera un resumen de toda la clase.</p>";
+  const options = document.createElement("div"); options.className = "report-options";
+  options.innerHTML = "<label><input type='checkbox' id='reportIncludeSummary' checked> Resumen por criterio</label><label><input type='checkbox' id='reportIncludeRubric' checked> Tabla detallada de la rúbrica</label><label class='report-observation'><span>Observaciones para el alumno</span><textarea id='reportObservations' rows='2' placeholder='Fortalezas, próximos pasos o recomendaciones…'></textarea></label>";
+  actions.appendChild(options);
   const buttons = document.createElement("div"); buttons.className = "button-row";
-  [["PDF del alumno",printStudentRubric],["CSV del alumno",()=>downloadStudent(student)],["CSV de toda la clase",downloadClass],["Sesión JSON",downloadJSON]].forEach(([label,fn])=>{const b=document.createElement("button");b.className="ghost-btn";b.textContent=label;b.onclick=fn;buttons.appendChild(b)});
+  [["PDF individual",printStudentRubric],["PDF del grupo",printClassReport],["CSV del alumno",()=>downloadStudent(student)],["CSV de toda la clase",downloadClass],["Sesión JSON",downloadJSON]].forEach(([label,fn])=>{const b=document.createElement("button");b.className="ghost-btn";b.textContent=label;b.onclick=fn;buttons.appendChild(b)});
   actions.appendChild(buttons); box.appendChild(actions);
 }
 function renderEvaluation() {
