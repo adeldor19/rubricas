@@ -2,11 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rúbricas · ProfeAlbertoD</title><link rel="stylesheet" href="style.css">
+<title>Rúbricas · Profesor Alberto Delgado</title><link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><div class="brand-mark">R</div><div><div class="brand-title">Rúbricas</div><div class="brand-subtitle">ProfeAlbertoD · Evaluación interactiva</div></div></div>
+  <div class="brand"><div class="brand-mark">R</div><div><div class="brand-title">Rúbricas</div><div class="brand-subtitle">Profesor Alberto Delgado · Evaluación interactiva</div></div></div>
   <nav class="main-nav" id="mainNav">
     <button class="nav-btn active" data-view="importView">Rúbrica</button><button class="nav-btn" data-view="promptView">Generar rúbrica</button>
     <button class="nav-btn hidden" id="classNav" data-view="classView">Alumnado</button>
@@ -56,32 +56,115 @@
 <section id="promptView" class="view hidden">
   <div class="page-title"><div><span class="eyebrow">ASISTENTE DE CREACIÓN</span><h1>Generar una rúbrica</h1><p>Usa este prompt con ChatGPT u otra IA y obtén una rúbrica compatible con esta aplicación.</p></div></div>
   <div class="card prompt-card">
-    <div class="card-head"><div><h2>Prompt para generar la rúbrica</h2><p>Está diseñado específicamente para la estructura CSV que utiliza ProfeAlbertoD.</p></div><button id="copyPromptBtn" class="primary-btn">📋 Copiar prompt</button></div>
-    <textarea id="rubricPrompt" readonly>Genera una rúbrica compatible con esta aplicación. Devuelve EXCLUSIVAMENTE un CSV separado por ; y sin Markdown.
+    <div class="card-head"><div><h2>Prompt para generar la rúbrica</h2><p>Sigue el procedimiento de evaluación competencial del Profesor Alberto Delgado.</p></div><button id="copyPromptBtn" class="primary-btn">📋 Copiar prompt</button></div>
+    <textarea id="rubricPrompt" readonly># PROMPT PARA GENERAR RÚBRICAS DE EVALUACIÓN EN CSV
 
-Cabecera EXACTA:
+Actúa como especialista en evaluación competencial según la LOMLOE y el currículo de Andalucía. Tu tarea es elaborar una **rúbrica de evaluación analítica en formato CSV**, adaptada al examen, actividad o proyecto que te proporcionaré.
+
+## 1. DOCUMENTACIÓN NECESARIA
+
+**Antes de generar la rúbrica, debes pedirme que adjunte los siguientes documentos o que pegue su contenido:**
+
+1. **Las preguntas o actividades del examen** completo, con sus enunciados, apartados y puntuaciones máximas, si están disponibles.
+2. **Los criterios de evaluación que se van a evaluar**, indicando su código y descripción oficial. Si procede, también adjuntaré las competencias específicas relacionadas.
+
+No debes elaborar la rúbrica definitiva sin disponer de las preguntas y de los criterios de evaluación. Si falta alguno de estos elementos, solicítamelo antes de continuar.
+
+Si algún apartado no tiene una puntuación máxima explícita, pregunta por ella o propón una distribución provisional claramente identificada para que pueda validarla.
+
+## 2. ANÁLISIS PREVIO
+
+Una vez recibida la documentación:
+
+- Analiza cada pregunta y sus apartados.
+- Relaciona cada pregunta con el criterio de evaluación que realmente permite evaluar.
+- Identifica los aspectos concretos que debe demostrar el alumnado.
+- Respeta los contenidos, la terminología y las exigencias de los enunciados originales.
+- No inventes preguntas, criterios oficiales, códigos ni contenidos que no aparezcan en la documentación.
+- Si una pregunta evalúa varios aspectos diferenciados, puedes dividirla en varias filas de la rúbrica, siempre que la puntuación máxima de cada apartado quede correctamente distribuida.
+- Si una pregunta integra varios criterios de evaluación, indica esa relación de forma clara y justificada.
+- No asignes automáticamente una pregunta a un criterio por su temática: la relación debe basarse en lo que el alumnado debe demostrar.
+- Si detectas contradicciones entre las puntuaciones, los enunciados y los criterios, indícalas antes de elaborar la versión definitiva.
+
+## 3. ESTRUCTURA OBLIGATORIA DEL CSV
+
+La rúbrica debe utilizar exactamente estas columnas, en este mismo orden y con estos nombres:
+```
 Criterio;Pregunta;Aspecto evaluado;Nivel insuficiente (0%);Puntos 0%;Nivel básico (25%);Puntos 25%;Nivel adecuado (50%);Puntos 50%;Nivel notable (75%);Puntos 75%;Nivel excelente (100%);Puntos 100%;Máximo;Puntuación obtenida
+```
 
-REGLAS:
-- Cada fila es una pregunta evaluable.
-- Usa exactamente los niveles 0%, 25%, 50%, 75% y 100%.
-- Los descriptores deben ser progresivos, observables, concretos y competenciales.
-- Evita descriptores vagos o puramente memorísticos.
-- El Aspecto evaluado debe indicar el aprendizaje concreto que se valora.
-- Agrupa las preguntas con códigos como CE1.1, CE1.2, CE2.1.
-- Si proporciono competencias específicas, criterios o saberes básicos, relaciónalos sin inventar códigos legales.
-- Las puntuaciones deben ser proporcionales. Ejemplo máximo 2: 0/0,5/1/1,5/2. Ejemplo máximo 3: 0/0,75/1,5/2,25/3.
-- Máximo debe coincidir con Puntos 100%.
-- Puntuación obtenida debe quedar vacía.
-- Usa español de España y adapta el nivel educativo.
-- No añadas columnas ni cambies nombres u orden.
-- Si un campo contiene ;, usa comillas dobles.
-- Prioriza calidad frente a cantidad.
+No cambies los nombres, el orden ni el número de columnas.
 
-Después te proporcionaré el contexto de la unidad, situación de aprendizaje o actividad. Genera la rúbrica siguiendo todas estas reglas.</textarea>
+## 4. NIVELES DE DESEMPEÑO
+
+Cada fila debe describir cinco niveles de desempeño claramente diferenciados:
+
+- **Insuficiente (0 %):** no responde, comete errores fundamentales o no demuestra el aprendizaje evaluado.
+- **Básico (25 %):** demuestra una comprensión inicial, pero presenta errores importantes, omisiones o dificultades de aplicación.
+- **Adecuado (50 %):** alcanza los aprendizajes esenciales, aunque presenta alguna imprecisión o falta de desarrollo.
+- **Notable (75 %):** demuestra un buen dominio, aplica correctamente los conocimientos y presenta pocas imprecisiones.
+- **Excelente (100 %):** responde de forma completa, precisa, razonada y autónoma, con todas las evidencias exigidas en la pregunta.
+
+Estas descripciones son orientativas. Debes concretarlas para cada aspecto evaluado, de manera que permitan distinguir objetivamente los niveles de calidad de la respuesta.
+
+Evita descriptores vagos como «lo hace bien», «regular» o «muy completo». Especifica qué identifica, calcula, explica, justifica, representa o aplica el alumnado en cada nivel.
+
+## 5. PUNTUACIONES
+
+- La columna **Máximo** debe recoger la puntuación máxima real del aspecto evaluado.
+- Las columnas de puntuación deben calcularse aplicando los porcentajes establecidos: 0 %, 25 %, 50 %, 75 % y 100 % del máximo.
+- Utiliza el formato decimal español, con coma decimal cuando sea necesario.
+- No redondees de forma que se altere la puntuación máxima total. Si los valores generan decimales periódicos o demasiadas cifras, utiliza una precisión coherente y comprueba las sumas.
+- La columna **Puntuación obtenida** debe quedar vacía para que pueda completarse posteriormente.
+- La suma de los máximos de los aspectos asociados a una pregunta no puede superar la puntuación máxima de esa pregunta.
+- La suma de las puntuaciones máximas debe coincidir con la puntuación total prevista para el examen o actividad.
+- Si la actividad se divide en bloques independientes, comprueba también que cada bloque alcanza exactamente la puntuación establecida.
+
+## 6. CRITERIOS PARA REDACTAR LOS DESCRIPTORES
+
+Para cada fila:
+
+1. Incluye el código del criterio de evaluación correspondiente, respetando el código oficial que te haya facilitado.
+2. Identifica la pregunta y, si procede, su apartado: por ejemplo, «P6», «P9a» o «P12b».
+3. Define un único aspecto evaluado, observable y concreto.
+4. Redacta cinco descriptores progresivos, específicos y verificables.
+5. Asegura que los descriptores se corresponden con lo que solicita el enunciado.
+6. No penalices al alumnado por aspectos que la pregunta no exige.
+7. Distingue entre errores conceptuales, errores de procedimiento, falta de justificación, ausencia de evidencias y calidad de la comunicación cuando corresponda.
+8. Evita que dos filas evalúen exactamente el mismo aspecto y provoquen una doble penalización injustificada.
+
+## 7. FORMATO DE ENTREGA
+
+Entrega el resultado final en un único bloque de código CSV, listo para copiar y pegar en un archivo `.csv` o importar en una hoja de cálculo.
+
+Condiciones obligatorias:
+
+- Utiliza el punto y coma (`;`) como separador.
+- Incluye una única fila de encabezados.
+- No añadas numeración automática a las preguntas.
+- No incluyas explicaciones, comentarios ni títulos dentro del CSV.
+- No utilices tablas Markdown para presentar la rúbrica.
+- No dejes filas incompletas ni alteres el número de columnas.
+- Deja vacía la última columna, «Puntuación obtenida».
+- Si algún descriptor contiene un punto y coma, sustitúyelo por una coma o reformula el texto para evitar que se rompa la estructura.
+- Comprueba que todas las filas tienen el mismo número de campos y que el CSV es coherente con la puntuación máxima de cada pregunta y del conjunto.
+
+## 8. COMPROBACIÓN FINAL
+
+Antes de entregar el CSV, verifica:
+
+- Que todas las preguntas evaluables están recogidas.
+- Que todos los criterios incluidos están respaldados por la documentación aportada.
+- Que cada aspecto evaluado se corresponde con una evidencia observable.
+- Que los cinco niveles son progresivos y específicos.
+- Que las puntuaciones de los niveles son correctas.
+- Que la suma de los máximos coincide con la puntuación total prevista.
+- Que se conserva exactamente la estructura CSV solicitada.
+
+**IMPORTANTE:** Si todavía no he adjuntado las preguntas y los criterios de evaluación, no generes ninguna rúbrica de ejemplo. Primero, pídeme ambos documentos para poder construir una rúbrica ajustada a la evaluación real.</textarea>
     <div class="prompt-help"><strong>Cómo usarlo</strong><span>1. Copia el prompt.</span><span>2. Añade después el tema, unidad, criterios y nivel educativo que quieras.</span><span>3. Pide a la IA que devuelva exclusivamente el CSV.</span><span>4. Pega el resultado en la pestaña «Rúbrica».</span></div>
   </div>
 </section></main>
-<div id="printArea"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="app.js?v=20261008-2"></script>
+<footer class="site-footer">Una idea del Profesor Alberto Delgado</footer><div id="printArea"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="app.js?v=20261012-1"></script>
 </body></html>
