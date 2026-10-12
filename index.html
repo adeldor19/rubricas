@@ -21,6 +21,7 @@
     <div class="card editor-card">
       <div class="card-head"><div><h2>Pegar rúbrica CSV</h2><p>Se recomienda <strong>;</strong> como separador. Se admiten comillas.</p></div><button id="exampleBtn" class="text-btn">Cargar ejemplo</button></div>
       <textarea id="csvInput" spellcheck="false" placeholder="Criterio;Pregunta;Aspecto evaluado;Nivel insuficiente (0%);Puntos 0%;..."></textarea>
+      <div id="validationPanel" class="validation-panel hidden" aria-live="polite"></div>
       <div class="editor-footer"><span id="parseStatus">Esperando CSV…</span><button id="loadBtn" class="primary-btn">Cargar rúbrica</button></div>
     </div>
     <div class="card instructions-card"><h2>Después de cargarla</h2>
