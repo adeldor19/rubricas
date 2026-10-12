@@ -102,3 +102,37 @@
 .report-options .table-note{margin:0;color:var(--muted);font-size:.82rem;line-height:1.45}
 @media(max-width:900px){.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.heat-cell{min-width:115px}}
 @media(max-width:640px){.dashboard-filters{grid-template-columns:1fr}.dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-stat{padding:14px}.dashboard-stat>strong{font-size:1.5rem}.dashboard-heatmap,.dashboard-criteria{padding:14px}.dashboard-legend{gap:10px}.heatmap-table{min-width:580px}}
+
+
+/* Mapa de dificultades del grupo */
+.difficulty-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 20px}
+.difficulty-stat{padding:18px;display:flex;flex-direction:column;gap:6px}
+.difficulty-stat>span{font-size:.68rem;letter-spacing:.06em;font-weight:800;color:var(--muted)}
+.difficulty-stat>strong{font-size:1.65rem;line-height:1.2;color:var(--primary)}
+.difficulty-stat>small{font-size:.78rem;color:var(--muted);line-height:1.4}
+.dashboard-difficulty-map,.dashboard-priorities{padding:22px;margin-bottom:20px;min-width:0}
+.dashboard-difficulty-map h2,.dashboard-priorities h2{margin:0 0 7px}
+.dashboard-difficulty-map .card-head p{font-size:.9rem;line-height:1.5}
+.difficulty-legend{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:16px 0;font-size:.78rem;color:var(--muted)}
+.difficulty-legend span{display:flex;align-items:center;gap:6px}
+.difficulty-legend i{display:inline-block;width:14px;height:14px;border-radius:4px;border:1px solid rgba(90,24,57,.12)}
+.difficulty-low{background:#f2d9d8}
+.difficulty-mid{background:#f3e5c9}
+.difficulty-high{background:#d5e7dd}
+.difficulty-pending{background:#f1f2f4}
+.difficulty-table{width:100%;border-collapse:separate;border-spacing:5px;min-width:640px}
+.difficulty-table th{font-size:.78rem;text-align:left;padding:9px 7px;color:var(--muted);vertical-align:bottom}
+.difficulty-table th.heat-student{position:sticky;left:0;background:var(--surface);color:var(--text);min-width:150px;z-index:1}
+.difficulty-cell{width:100%;min-width:128px;min-height:82px;border:1px solid rgba(90,24,57,.08);border-radius:10px;padding:9px 8px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:3px;text-align:left;color:var(--text)}
+.difficulty-cell:hover{outline:2px solid var(--primary);outline-offset:1px}
+.difficulty-cell strong{font-size:1.08rem;color:var(--primary)}
+.difficulty-cell span{font-size:.7rem}
+.difficulty-cell small{font-size:.66rem;color:#5f5360;line-height:1.2}
+.difficulty-badge{display:inline-block;padding:5px 8px;border-radius:7px;font-size:.73rem;line-height:1.25;font-weight:800;white-space:normal}
+.difficulty-badge.diff-priority{background:#f2d9d8;color:#7f2028}
+.difficulty-badge.diff-review{background:#f3e5c9;color:#80551a}
+.difficulty-badge.diff-good{background:#d5e7dd;color:#235e42}
+.difficulty-badge.diff-limited{background:#f1f2f4;color:#596273}
+.difficulty-badge.diff-watch{background:var(--primary-soft);color:var(--primary)}
+@media(max-width:900px){.difficulty-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-difficulty-map,.dashboard-priorities{padding:14px}}
+@media(max-width:640px){.difficulty-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.difficulty-stat{padding:14px}.difficulty-stat>strong{font-size:1.4rem}.difficulty-cell{min-width:115px}.difficulty-table{min-width:580px}}
