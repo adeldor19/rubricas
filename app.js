@@ -402,7 +402,7 @@ function printBlankRubric() {
     const levels = q.levels.map(l => "<td><strong>" + escapeHTML(l.label) + " (" + l.pct + "%)</strong><br>" + escapeHTML(l.description) + "<br><b>" + format(l.points) + " pt</b></td>").join("");
     return "<tr><td><strong>" + escapeHTML(q.criterion) + "</strong></td><td>" + escapeHTML(q.question) + "<br><small>" + escapeHTML(q.aspect) + "</small></td>" + levels + "</tr>";
   }).join("");
-  openPrint("<div class='print-header'><div><h1>" + escapeHTML(title) + "</h1><p>Grupo: " + escapeHTML(state.group || "__________") + " &nbsp; · &nbsp; Alumno/a: ______________________________</p></div><div class='print-brand'>Una idea del Profesor Alberto Delgado</div></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>Insuficiente<br>0%</th><th>Básico<br>25%</th><th>Adecuado<br>50%</th><th>Notable<br>75%</th><th>Excelente<br>100%</th></tr></thead><tbody>" + rows + "</tbody></table><div class='print-footer'>Puntuación obtenida: __________ / " + format(state.rubric.reduce((s,q)=>s+q.max,0)) + " &nbsp;&nbsp;&nbsp; Nota: ______ / 10</div>", "blank");
+  openPrint("<div class='print-header'><div><h1>" + escapeHTML(title) + "</h1><p>Grupo: " + escapeHTML(state.group || "__________") + " &nbsp; · &nbsp; Alumno/a: ______________________________</p></div></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>Insuficiente<br>0%</th><th>Básico<br>25%</th><th>Adecuado<br>50%</th><th>Notable<br>75%</th><th>Excelente<br>100%</th></tr></thead><tbody>" + rows + "</tbody></table><div class='print-footer'>Puntuación obtenida: __________ / " + format(state.rubric.reduce((s,q)=>s+q.max,0)) + " &nbsp;&nbsp;&nbsp; Nota: ______ / 10</div>", "blank");
 }
 function printStudentRubric() {
   try {
@@ -441,7 +441,7 @@ function printStudentRubric() {
     const content =
       "<div class='print-header'><div><h1>" + (state.activity ? escapeHTML(state.activity) : "Informe individual de evaluación") +
       "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) + " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") +
-      "</p></div><div class='print-brand'>Una idea del Profesor Alberto Delgado</div></div>" +
+      "</p></div></div>" +
       "<div class='print-grade'><div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) +
       "</strong></div><div><span>NOTA PROVISIONAL / 10</span><strong>" + format(grade) + " / 10</strong></div><div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div></div>" +
       pendingNote + summarySection + rubricSection + observationsSection +
@@ -463,11 +463,11 @@ function printClassReport() {
   });
   const assessed = state.students.reduce((sum, student) => sum + totals(student).evaluated, 0);
   const possible = state.students.length * state.rubric.length;
-  const content = "<div class='print-header'><div><h1>Informe de evaluación del grupo</h1><p><strong>Grupo:</strong> " + escapeHTML(state.group || "—") + " &nbsp; · &nbsp; <strong>Actividad:</strong> " + escapeHTML(state.activity || "Rúbrica de evaluación") + "</p></div><div class='print-brand'>Una idea del Profesor Alberto Delgado</div></div>" +
+  const content = "<div class='print-header'><div><h1>Informe de evaluación del grupo</h1><p><strong>Grupo:</strong> " + escapeHTML(state.group || "—") + " &nbsp; · &nbsp; <strong>Actividad:</strong> " + escapeHTML(state.activity || "Rúbrica de evaluación") + "</p></div></div>" +
     "<div class='print-grade'><div><span>ALUMNADO</span><strong>" + state.students.length + "</strong></div><div><span>EVIDENCIAS EVALUADAS</span><strong>" + assessed + " / " + possible + "</strong></div><div><span>COBERTURA</span><strong>" + format(possible ? assessed / possible * 100 : 0) + "%</strong></div></div>" +
     "<div class='competency-title'><h2>Resultados por alumno y criterio</h2></div><table class='print-rubric'><thead><tr><th>Alumno/a</th><th>Criterio</th><th>Evidencias</th><th>Puntuación evaluada</th><th>Logro</th><th>Lectura orientativa</th></tr></thead><tbody>" + rows.join("") + "</tbody></table>" +
     "<div class='print-note'>Los porcentajes por criterio se calculan solo con los aspectos evaluados. El estado indica si hay aspectos pendientes y no asigna niveles automáticos de adquisición competencial.</div>" +
-    "<div class='print-footer'>Informe de grupo · Una idea del Profesor Alberto Delgado</div>";
+    "<div class='print-footer'>Informe de grupo</div>";
   openPrint(content, "student");
 }
 
