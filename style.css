@@ -42,3 +42,11 @@
 .validation-panel.is-valid{border-color:#b6d8c0;background:#f6fbf7}
 #loadBtn:disabled{opacity:.45;cursor:not-allowed;transform:none}
 @media(max-width:600px){.validation-heading{flex-direction:column}.validation-heading span{white-space:normal}}
+
+
+/* Flujo de corrección rápida */
+.save-status{font-size:.75rem!important;color:var(--muted);margin-top:2px}
+.save-status.save-error{color:#a12626;font-weight:800}
+.quick-shortcuts{margin:10px 2px 0;color:var(--muted);font-size:.8rem;line-height:1.45}
+.quick-nav button:disabled{opacity:.35;cursor:not-allowed;transform:none}
+@media(max-width:600px){.quick-shortcuts{font-size:.76rem}}
