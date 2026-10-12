@@ -359,11 +359,76 @@ function renderResults() {
   const actions = document.createElement("div"); actions.className = "card backup-card";
   actions.innerHTML = "<h2>Informes y exportación</h2><p>Personaliza el PDF individual o genera un resumen de toda la clase.</p>";
   const options = document.createElement("div"); options.className = "report-options";
-  options.innerHTML = "<label><input type='checkbox' id='reportIncludeSummary' checked> Resumen por criterio</label><label><input type='checkbox' id='reportIncludeRubric' checked> Tabla detallada de la rúbrica</label><label class='report-observation'><span>Observaciones para el alumno</span><textarea id='reportObservations' rows='2' placeholder='Fortalezas, próximos pasos o recomendaciones…'></textarea></label>";
+  options.innerHTML = "<label><input type='checkbox' id='reportIncludeSummary' checked> Resumen por criterio</label><label><input type='checkbox' id='reportIncludeRubric' checked> Tabla detallada de la rúbrica</label><label class='report-observation'><span>Retroalimentación y observaciones para el alumno</span><textarea id='reportObservations' rows='8' placeholder='Genera una propuesta basada en las evidencias y edítala antes de incluirla en el PDF…'></textarea></label><button type='button' class='ghost-btn' id='generateFeedbackBtn'>Generar propuesta de retroalimentación</button><p class='table-note'>La propuesta se construye con los niveles seleccionados. Revísala y edítala antes de generar el informe.</p>";
   actions.appendChild(options);
+  $("#generateFeedbackBtn").onclick = () => {
+    $("#reportObservations").value = generateFeedbackDraft(student);
+    notify("Propuesta de retroalimentación generada. Revísala antes de exportar.");
+  };
   const buttons = document.createElement("div"); buttons.className = "button-row";
   [["PDF individual",printStudentRubric],["PDF del grupo",printClassReport],["CSV del alumno",()=>downloadStudent(student)],["CSV de toda la clase",downloadClass],["Sesión JSON",downloadJSON]].forEach(([label,fn])=>{const b=document.createElement("button");b.className="ghost-btn";b.textContent=label;b.onclick=fn;buttons.appendChild(b)});
   actions.appendChild(buttons); box.appendChild(actions);
+}
+function renderDashboard() {
+  const host = $("#dashboardContent");
+  if (!host) return;
+  if (!state.rubric.length || !state.students.length) {
+    host.innerHTML = "<div class='card dashboard-empty'><h2>Aún no hay datos suficientes</h2><p>Carga una rúbrica y añade al alumnado para consultar el panel del grupo.</p></div>";
+    return;
+  }
+  const studentFilter = $("#dashboardStudentFilter"), criterionFilter = $("#dashboardCriterionFilter"), statusFilter = $("#dashboardStatusFilter");
+  const oldStudent = studentFilter.value, oldCriterion = criterionFilter.value, oldStatus = statusFilter.value;
+  studentFilter.innerHTML = "<option value='all'>Todo el alumnado</option>" + state.students.map(st => "<option value='" + escapeHTML(st.id) + "'>" + escapeHTML(st.name) + "</option>").join("");
+  criterionFilter.innerHTML = "<option value='all'>Todos los criterios</option>" + [...grouped().keys()].map(c => "<option value='" + escapeHTML(c) + "'>" + escapeHTML(c) + "</option>").join("");
+  studentFilter.value = state.students.some(st => st.id === oldStudent) ? oldStudent : "all";
+  criterionFilter.value = [...grouped().keys()].includes(oldCriterion) ? oldCriterion : "all";
+  statusFilter.value = ["all","none","partial","complete"].includes(oldStatus) ? oldStatus : "all";
+  const students = state.students.filter(st => studentFilter.value === "all" || st.id === studentFilter.value);
+  const criteria = [...grouped()].filter(([name]) => criterionFilter.value === "all" || name === criterionFilter.value);
+  const allCells = students.flatMap(st => criteria.map(([criterion, items]) => criterionEvidence(st, items, criterion)));
+  const totalAspects = allCells.reduce((sum, x) => sum + x.total, 0), evaluatedAspects = allCells.reduce((sum, x) => sum + x.evaluated, 0);
+  const complete = allCells.filter(x => x.status === "Evaluación completa").length, pendingCells = allCells.filter(x => x.status !== "Evaluación completa").length;
+  const coverage = totalAspects ? evaluatedAspects / totalAspects * 100 : 0;
+  const stats = "<div class='dashboard-stats'>" +
+    "<article class='card dashboard-stat'><span>ALUMNADO VISIBLE</span><strong>" + students.length + "</strong></article>" +
+    "<article class='card dashboard-stat'><span>COBERTURA DE EVIDENCIAS</span><strong>" + format(coverage) + "%</strong><small>" + evaluatedAspects + " / " + totalAspects + " aspectos evaluados</small></article>" +
+    "<article class='card dashboard-stat'><span>CRITERIOS COMPLETOS</span><strong>" + complete + "</strong><small>Combinaciones alumno-criterio</small></article>" +
+    "<article class='card dashboard-stat'><span>CON TAREAS PENDIENTES</span><strong>" + pendingCells + "</strong><small>Combinaciones alumno-criterio</small></article></div>";
+  const legend = "<div class='dashboard-legend'><span><i class='heat-none'></i> Sin evaluar</span><span><i class='heat-partial'></i> Evaluación parcial</span><span><i class='heat-complete'></i> Evaluación completa</span><small>El color representa el estado de evaluación, no el nivel competencial.</small></div>";
+  const head = "<div class='dashboard-table-wrap'><table class='heatmap-table'><thead><tr><th>Alumno/a</th>" + criteria.map(([c]) => "<th>" + escapeHTML(c) + "</th>").join("") + "</tr></thead><tbody>";
+  const body = students.map(st => {
+    const cells = criteria.map(([criterion, items]) => {
+      const r = criterionEvidence(st, items, criterion);
+      const cls = r.evaluated === 0 ? "heat-none" : r.pendingItems.length ? "heat-partial" : "heat-complete";
+      const matches = statusFilter.value === "all" || (statusFilter.value === "none" && r.evaluated === 0) || (statusFilter.value === "partial" && r.status === "Evaluación parcial") || (statusFilter.value === "complete" && r.status === "Evaluación completa");
+      const pct = r.pct === null ? "—" : format(r.pct) + "%";
+      return "<td><button type='button' class='heat-cell " + cls + (matches ? "" : " heat-dimmed") + "' data-student='" + escapeHTML(st.id) + "' data-criterion='" + escapeHTML(criterion) + "' title='" + escapeHTML(st.name + " · " + criterion + " · " + r.status) + "'><strong>" + pct + "</strong><span>" + r.evaluated + "/" + r.total + " evidencias</span><small>" + escapeHTML(r.status) + "</small></button></td>";
+    }).join("");
+    return "<tr><th class='heat-student'>" + escapeHTML(st.name) + "</th>" + cells + "</tr>";
+  }).join("");
+  const overviewRows = criteria.map(([criterion, items]) => {
+    const evidence = students.map(st => criterionEvidence(st, items, criterion)).filter(x => x.pct !== null);
+    const average = evidence.length ? evidence.reduce((sum, x) => sum + x.pct, 0) / evidence.length : null;
+    const evaluated = evidence.reduce((sum, x) => sum + x.evaluated, 0), possible = students.length * items.length;
+    return "<tr><td><strong>" + escapeHTML(criterion) + "</strong></td><td>" + evidence.length + " / " + students.length + "</td><td>" + (average === null ? "—" : format(average) + "%") + "</td><td>" + evaluated + " / " + possible + "</td></tr>";
+  }).join("");
+  host.innerHTML = stats + "<section class='card dashboard-heatmap'><div class='card-head'><div><h2>Mapa de evaluación</h2><p>Selecciona una celda para abrir los resultados de ese alumno.</p></div></div>" + legend + head + body + "</tbody></table></div></section>" +
+    "<section class='card dashboard-criteria'><h2>Resumen por criterio</h2><p class='table-note'>El promedio solo incluye alumnado con evidencias evaluadas. No se interpreta como un nivel automático de adquisición competencial.</p><div class='dashboard-table-wrap'><table class='results-table'><thead><tr><th>Criterio</th><th>Alumnado con evidencias</th><th>Promedio sobre lo evaluado</th><th>Aspectos evaluados</th></tr></thead><tbody>" + overviewRows + "</tbody></table></div></section>";
+  host.querySelectorAll(".heat-cell").forEach(button => button.addEventListener("click", () => {
+    state.active = button.dataset.student; state.mode = "results"; view("rubricView"); renderEvaluation();
+  }));
+}
+function generateFeedbackDraft(student) {
+  const sel = selections(student), evaluated = state.rubric.filter(q => sel.has(q.id));
+  if (!evaluated.length) return "Todavía no hay aspectos evaluados suficientes para redactar una devolución basada en evidencias. Evalúa algunos aspectos de la rúbrica y vuelve a generar la propuesta.";
+  const strengths = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) >= 75), improvements = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) <= 25), pending = state.rubric.filter(q => !sel.has(q.id));
+  const list = items => items.map(q => "• " + q.question + ": " + q.aspect).join("\n");
+  let draft = "RETROALIMENTACIÓN · " + student.name + "\n\n";
+  draft += strengths.length ? "FORTALEZAS OBSERVADAS\n" + list(strengths) + "\n\n" : "FORTALEZAS OBSERVADAS\nEn los aspectos evaluados no hay todavía evidencias seleccionadas en los niveles superiores de la rúbrica. Revisa los descriptores y las evidencias antes de concretar esta valoración.\n\n";
+  draft += improvements.length ? "ASPECTOS QUE CONVIENE REVISAR\n" + list(improvements) + "\n\n" : "ASPECTOS QUE CONVIENE REVISAR\nNo se han detectado aspectos evaluados en los niveles iniciales de la rúbrica.\n\n";
+  draft += improvements.length ? "SIGUIENTE PASO\nRevisa los aspectos indicados y contrasta tu trabajo con los descriptores de la rúbrica. Corrige o completa las evidencias señaladas y vuelve a comprobarlas.\n\n" : "SIGUIENTE PASO\nMantén las estrategias que te han funcionado y comprueba que puedes aplicarlas en nuevas tareas.\n\n";
+  draft += pending.length ? "PENDIENTE DE EVALUAR\nQuedan " + pending.length + " aspecto(s) sin evaluar. Esta propuesta es provisional y no incluye conclusiones sobre esas evidencias." : "La propuesta se basa en todos los aspectos de esta rúbrica que se han evaluado.";
+  return draft;
 }
 function renderEvaluation() {
   if (!current()) return;
@@ -545,7 +610,7 @@ function loadRubric() {
   if (validation.errors.length) { notify("Corrige los errores del CSV antes de cargarlo."); return; }
   try {
     state.rubric = parseCSV($("#csvInput").value); state.students=[]; state.active=null; state.quick=0; state.group=""; state.activity=""; save();
-    $("#classNav").classList.remove("hidden"); view("classView"); renderStudents(); notify("Rúbrica cargada: "+state.rubric.length+" preguntas");
+    $("#classNav").classList.remove("hidden"); $("#dashboardNav").classList.remove("hidden"); view("classView"); renderStudents(); notify("Rúbrica cargada: "+state.rubric.length+" preguntas");
   } catch (e) { notify(e.message || "No se ha podido leer el CSV."); }
 }
 function restore() {
@@ -553,7 +618,7 @@ function restore() {
   try {
     const data=JSON.parse(raw); state.rubric=data.rubric||[]; state.students=data.students||[]; state.active=data.active||state.students[0]?.id||null; state.group=data.group||""; state.activity=data.activity||"";
     if(data.csv) $("#csvInput").value=data.csv;
-    if(state.rubric.length){$("#classNav").classList.remove("hidden");view("classView");renderStudents();}
+    if(state.rubric.length){$("#classNav").classList.remove("hidden");$("#dashboardNav").classList.remove("hidden");view("classView");renderStudents();}
   } catch {}
 }
 function setup() {
@@ -567,7 +632,16 @@ function setup() {
     $("#loadBtn").disabled = result.errors.length > 0;
   };
   $("#resetBtn").onclick=()=>{if(state.rubric.length&&!confirm("¿Empezar una nueva rúbrica? Se borrará la sesión de este navegador."))return;localStorage.removeItem("rubricas-app-v3");location.reload()};
-  document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{if(b.dataset.view==="promptView" || state.rubric.length)view(b.dataset.view)});
+  document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
+    if(b.dataset.view==="promptView" || state.rubric.length){
+      view(b.dataset.view);
+      if(b.dataset.view==="dashboardView") renderDashboard();
+    }
+  });
+  ["dashboardStudentFilter","dashboardCriterionFilter","dashboardStatusFilter"].forEach(id => {
+    const control = $("#" + id);
+    if (control) control.addEventListener("change", renderDashboard);
+  });
   $("#addStudentBtn").onclick=()=>{$("#studentAddBox").classList.remove("hidden");$("#newStudentName").focus()};
   $("#confirmStudentBtn").onclick=()=>{addStudent($("#newStudentName").value);$("#newStudentName").value="";$("#studentAddBox").classList.add("hidden")};
   $("#newStudentName").onkeydown=e=>{if(e.key==="Enter")$("#confirmStudentBtn").click()};
