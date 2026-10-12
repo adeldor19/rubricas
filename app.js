@@ -359,11 +359,15 @@ function renderResults() {
   const actions = document.createElement("div"); actions.className = "card backup-card";
   actions.innerHTML = "<h2>Informes y exportación</h2><p>Personaliza el PDF individual o genera un resumen de toda la clase.</p>";
   const options = document.createElement("div"); options.className = "report-options";
-  options.innerHTML = "<label><input type='checkbox' id='reportIncludeSummary' checked> Resumen por criterio</label><label><input type='checkbox' id='reportIncludeRubric' checked> Tabla detallada de la rúbrica</label><label class='report-observation'><span>Retroalimentación y observaciones para el alumno</span><textarea id='reportObservations' rows='8' placeholder='Genera una propuesta basada en las evidencias y edítala antes de incluirla en el PDF…'></textarea></label><button type='button' class='ghost-btn' id='generateFeedbackBtn'>Generar propuesta de retroalimentación</button><p class='table-note'>La propuesta se construye con los niveles seleccionados. Revísala y edítala antes de generar el informe.</p>";
+  options.innerHTML = "<label><input type='checkbox' id='reportIncludeSummary' checked> Resumen por criterio</label><label><input type='checkbox' id='reportIncludeRubric' checked> Tabla detallada de la rúbrica</label><label class='report-observation'><span>Retroalimentación y observaciones para el alumno</span><textarea id='reportObservations' rows='8' placeholder='Genera una propuesta basada en las evidencias y edítala antes de incluirla en el PDF…'></textarea></label><div class='button-row feedback-actions'><button type='button' class='ghost-btn' id='generateShortFeedbackBtn'>Generar versión breve · Moodle</button><button type='button' class='ghost-btn' id='generateLongFeedbackBtn'>Generar versión ampliada · PDF</button></div><p class='table-note'>Elige el formato según el uso. La propuesta se basa en las evidencias evaluadas; revísala y edítala antes de copiarla o incluirla en el PDF.</p>";
   actions.appendChild(options);
-  options.querySelector("#generateFeedbackBtn").onclick = () => {
-    options.querySelector("#reportObservations").value = generateFeedbackDraft(student);
-    notify("Propuesta de retroalimentación generada. Revísala antes de exportar.");
+  options.querySelector("#generateShortFeedbackBtn").onclick = () => {
+    options.querySelector("#reportObservations").value = generateFeedbackDraft(student, "short");
+    notify("Versión breve para Moodle generada.");
+  };
+  options.querySelector("#generateLongFeedbackBtn").onclick = () => {
+    options.querySelector("#reportObservations").value = generateFeedbackDraft(student, "long");
+    notify("Versión ampliada para el PDF generada.");
   };
   const buttons = document.createElement("div"); buttons.className = "button-row";
   [["PDF individual",printStudentRubric],["PDF del grupo",printClassReport],["CSV del alumno",()=>downloadStudent(student)],["CSV de toda la clase",downloadClass],["Sesión JSON",downloadJSON]].forEach(([label,fn])=>{const b=document.createElement("button");b.className="ghost-btn";b.textContent=label;b.onclick=fn;buttons.appendChild(b)});
@@ -419,31 +423,29 @@ function renderDashboard() {
     state.active = button.dataset.student; state.mode = "results"; view("rubricView"); renderEvaluation();
   }));
 }
-function generateFeedbackDraft(student) {
+function generateFeedbackDraft(student, formatType = "short") {
   const sel = selections(student);
   const evaluated = state.rubric.filter(q => sel.has(q.id));
   if (!evaluated.length) return "Aún no hay evidencias evaluadas suficientes para redactar una devolución.";
-
-  const strengths = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) >= 75).slice(0, 2);
-  const improvements = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) <= 25).slice(0, 2);
   const pending = state.rubric.filter(q => !sel.has(q.id));
-  const itemText = q => q.question + " — " + (sel.get(q.id)?.description || "nivel seleccionado");
-
-  let draft = "RETROALIMENTACIÓN · " + student.name + "\n";
-  if (strengths.length) {
-    draft += "\nPUNTOS FUERTES\n" + strengths.map(itemText).map(x => "• " + x).join("\n") + "\n";
+  const limit = formatType === "short" ? 1 : 3;
+  const strengths = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) >= 75).slice(0, limit);
+  const improvements = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) <= 25).slice(0, limit);
+  const developing = evaluated.filter(q => (sel.get(q.id)?.pct ?? 0) > 25 && (sel.get(q.id)?.pct ?? 0) < 75).slice(0, 3);
+  const itemText = q => q.question + ": " + (sel.get(q.id)?.description || sel.get(q.id)?.label || "nivel seleccionado");
+  let draft = formatType === "short"
+    ? "RETROALIMENTACIÓN PARA MOODLE · " + student.name + "\n"
+    : "RETROALIMENTACIÓN INDIVIDUAL · " + student.name + "\n";
+  if (strengths.length) draft += (formatType === "short" ? "\nLO QUE HACES BIEN\n" : "\nFORTALEZAS OBSERVADAS\n") + strengths.map(itemText).map(x => "• " + x).join("\n") + "\n";
+  if (improvements.length) draft += (formatType === "short" ? "\nQUÉ MEJORAR\n" : "\nASPECTOS PRIORITARIOS DE MEJORA\n") + improvements.map(itemText).map(x => "• " + x).join("\n") + "\n";
+  if (formatType === "long" && developing.length) draft += "\nAPRENDIZAJES EN DESARROLLO\n" + developing.map(itemText).map(x => "• " + x).join("\n") + "\n";
+  if (!strengths.length && !improvements.length && !(formatType === "long" && developing.length)) {
+    draft += "\nVas avanzando en los aspectos evaluados. Revisa los descriptores de la rúbrica para identificar qué puedes consolidar.\n";
   }
-  if (improvements.length) {
-    draft += "\nPARA MEJORAR\n" + improvements.map(itemText).map(x => "• " + x).join("\n") + "\n";
-  }
-  if (!strengths.length && !improvements.length) {
-    draft += "\nSigue trabajando y utiliza los descriptores de la rúbrica para identificar qué puedes consolidar.\n";
-  }
-  draft += "\nPRÓXIMO PASO\n";
-  draft += improvements.length
-    ? "Revisa los aspectos señalados y mejora esas evidencias en la próxima tarea."
-    : "Consolida lo aprendido y aplícalo en una nueva tarea.";
-  if (pending.length) draft += "\n\nPendiente: " + pending.length + " aspecto(s) sin evaluar; la valoración es provisional.";
+  draft += formatType === "short"
+    ? "\nSIGUIENTE PASO\n" + (improvements.length ? "Revisa el aspecto señalado y comprueba que la mejora se refleja en tu próxima respuesta." : "Aplica lo aprendido en la próxima tarea y sigue justificando tus decisiones.")
+    : "\nPROPUESTA DE SIGUIENTE PASO\n" + (improvements.length ? "Compara tu respuesta con los descriptores de la rúbrica, corrige primero los aspectos prioritarios y comprueba la mejora en la siguiente entrega." : "Consolida los aprendizajes demostrados y aplícalos de forma autónoma en una nueva tarea.");
+  if (pending.length) draft += "\n\nEVALUACIÓN PROVISIONAL: quedan " + pending.length + " aspecto(s) sin evaluar.";
   return draft;
 }
 function renderEvaluation() {
