@@ -340,22 +340,6 @@ function renderResults() {
   });
   table.appendChild(body); tableCard.appendChild(table); grid.append(hero, tableCard); box.appendChild(grid);
 
-  const groupCard = document.createElement("div"); groupCard.className = "card results-table-wrap group-analysis";
-  groupCard.innerHTML = "<h2>Visión general del grupo</h2><p class='table-note'>Promedio del porcentaje de logro de cada alumno que tenga evidencias en el criterio. Se muestra también cuántos alumnos han sido evaluados.</p>";
-  const groupTable = document.createElement("table"); groupTable.className = "results-table";
-  groupTable.innerHTML = "<thead><tr><th>Criterio</th><th>Alumnado con evidencias</th><th>Promedio de logro</th><th>Aspectos evaluados</th></tr></thead>";
-  const groupBody = document.createElement("tbody");
-  grouped().forEach((items, criterion) => {
-    const evidence = state.students.map(st => criterionEvidence(st, items, criterion)).filter(x => x.pct !== null);
-    const average = evidence.length ? evidence.reduce((sum, x) => sum + x.pct, 0) / evidence.length : null;
-    const assessed = evidence.reduce((sum, x) => sum + x.evaluated, 0);
-    const totalPossible = state.students.length * items.length;
-    const row = document.createElement("tr");
-    row.innerHTML = "<td><strong>" + escapeHTML(criterion) + "</strong></td><td>" + evidence.length + " / " + state.students.length + "</td><td><strong>" + (average === null ? "—" : format(average) + "%") + "</strong></td><td>" + assessed + " / " + totalPossible + "</td>";
-    groupBody.appendChild(row);
-  });
-  groupTable.appendChild(groupBody); groupCard.appendChild(groupTable); box.appendChild(groupCard);
-
   const actions = document.createElement("div"); actions.className = "card backup-card";
   actions.innerHTML = "<h2>Informes y exportación</h2><p>Personaliza el PDF individual o genera un resumen de toda la clase.</p>";
   const options = document.createElement("div"); options.className = "report-options";
