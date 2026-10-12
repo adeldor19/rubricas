@@ -443,7 +443,12 @@ function renderDashboard() {
     return "<tr><th class='heat-student'>" + escapeHTML(st.name) + "</th>" + cells + "</tr>";
   }).join("");
   const difficultyMap = "<section class='card dashboard-difficulty-map'><div class='card-head'><div><h2>Mapa de dificultades del grupo</h2><p>El color muestra el resultado sobre los aspectos evaluados de cada criterio. Selecciona una celda para consultar las evidencias del alumno.</p></div></div>" + difficultyLegend + "<div class='dashboard-table-wrap'><table class='difficulty-table'><thead><tr><th>Alumno/a</th>" + criteria.map(([c]) => "<th>" + escapeHTML(c) + "</th>").join("") + "</tr></thead><tbody>" + difficultyRows + "</tbody></table></div><p class='table-note'>Los aspectos pendientes no se consideran suspensos. Los porcentajes de cada celda se calculan solo con las evidencias evaluadas; los resultados parciales deben interpretarse con cautela.</p></section>";
-  const priorityRows = criterionAnalysis.map(x => {
+  const priorityOrder = {"Prioridad de refuerzo":0,"Revisar":1,"Seguimiento":2,"Consolidado":3,"Muestra limitada":4,"Sin evidencias":5};
+  const priorityRows = [...criterionAnalysis].sort((a, b) => {
+    const orderDiff = priorityOrder[a.status] - priorityOrder[b.status];
+    if (orderDiff !== 0) return orderDiff;
+    return (a.average ?? Infinity) - (b.average ?? Infinity);
+  }).map(x => {
     const lowText = x.results.length ? x.below + " / " + x.results.length + " (" + format(x.lowShare * 100) + "%)" : "—";
     const averageText = x.average === null ? "—" : format(x.average) + "%";
     const coverage = x.possibleAspects ? x.evaluatedAspects / x.possibleAspects * 100 : 0;
