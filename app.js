@@ -175,8 +175,8 @@ function criterionEvidence(student, items, criterion) {
   const maxEvaluated = evaluatedItems.reduce((sum, q) => sum + q.max, 0);
   const got = evaluatedItems.reduce((sum, q) => sum + (sel.get(q.id)?.points || 0), 0);
   const pct = maxEvaluated ? got / maxEvaluated * 100 : null;
-  let status = "Sin evidencias";
-  if (pct !== null) status = pct < 50 ? "Evidencia inicial" : pct < 75 ? "Evidencia parcial" : pct < 90 ? "Evidencia consistente" : "Evidencia sólida";
+  let status = "Sin evaluar";
+  if (pct !== null) status = pct < 50 ? "En desarrollo" : pct < 75 ? "Logro adecuado" : pct < 90 ? "Logro avanzado" : "Logro muy alto";
   return { criterion, items, evaluatedItems, pendingItems, evaluated:evaluatedItems.length, total:items.length, got, maxEvaluated, pct, status };
 }
 function totals(student) {
@@ -326,7 +326,7 @@ function renderResults() {
   const hero = document.createElement("div"); hero.className = "result-hero card";
   hero.innerHTML = "<span class='eyebrow'>RESULTADO GLOBAL</span><strong>" + format(t.pct) + "%</strong><span>" + format(t.got) + " / " + format(t.max) + " puntos máximos</span><div class='result-progress'><div style='width:" + t.pct + "%'></div></div><p class='result-coverage'>" + t.evaluated + " de " + t.total + " aspectos evaluados. Los aspectos pendientes cuentan como no puntuados en el resultado global.</p>";
   const tableCard = document.createElement("div"); tableCard.className = "card results-table-wrap";
-  tableCard.innerHTML = "<h2>Evidencias por criterio</h2><p class='table-note'>El porcentaje de cada criterio se calcula solo con los aspectos ya evaluados. Estos tramos son orientativos, no niveles oficiales del currículo.</p>";
+  tableCard.innerHTML = "<h2>Evidencias por criterio</h2><p class='table-note'>El porcentaje se calcula solo con los aspectos evaluados. Las etiquetas (En desarrollo, Logro adecuado, Logro avanzado y Logro muy alto) son una clasificación orientativa basada en la puntuación; no son niveles oficiales ni determinan por sí solas la adquisición de una competencia específica.</p>";
   const table = document.createElement("table"); table.className = "results-table";
   table.innerHTML = "<thead><tr><th>Criterio</th><th>Evidencias</th><th>Puntuación evaluada</th><th>Logro</th><th>Lectura orientativa</th></tr></thead>";
   const body = document.createElement("tbody");
@@ -430,7 +430,7 @@ function printStudentRubric() {
         "<td class='print-obtained'>" + (l ? format(l.points) : "—") + " / " + format(q.max) + "</td></tr>";
     }).join("");
     const summarySection = includeSummary
-      ? "<div class='competency-title'><h2>Resumen por criterio de evaluación</h2></div><table class='competency-table'><thead><tr><th>Criterio</th><th>Evidencias</th><th>Puntuación evaluada</th><th>Logro</th><th>Lectura orientativa</th></tr></thead><tbody>" + criterionRows + "</tbody></table>"
+      ? "<div class='competency-title'><h2>Resumen por criterio de evaluación</h2></div><table class='competency-table'><thead><tr><th>Criterio</th><th>Evidencias</th><th>Puntuación evaluada</th><th>Logro</th><th>Lectura orientativa</th></tr></thead><tbody>" + criterionRows + "</tbody></table><p class='print-note'>Clasificación orientativa calculada a partir de las puntuaciones obtenidas; no equivale por sí sola al nivel de adquisición de una competencia específica.</p>"
       : "";
     const rubricSection = includeRubric
       ? "<div class='competency-title'><h2>Detalle de la rúbrica</h2></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" + rows + "</tbody></table>"
@@ -467,7 +467,7 @@ function printClassReport() {
   const content = "<div class='print-header'><div><h1>Informe de evaluación del grupo</h1><p><strong>Grupo:</strong> " + escapeHTML(state.group || "—") + " &nbsp; · &nbsp; <strong>Actividad:</strong> " + escapeHTML(state.activity || "Rúbrica de evaluación") + "</p></div><div class='print-brand'>Una idea del Profesor Alberto Delgado</div></div>" +
     "<div class='print-grade'><div><span>ALUMNADO</span><strong>" + state.students.length + "</strong></div><div><span>EVIDENCIAS EVALUADAS</span><strong>" + assessed + " / " + possible + "</strong></div><div><span>COBERTURA</span><strong>" + format(possible ? assessed / possible * 100 : 0) + "%</strong></div></div>" +
     "<div class='competency-title'><h2>Resultados por alumno y criterio</h2></div><table class='print-rubric'><thead><tr><th>Alumno/a</th><th>Criterio</th><th>Evidencias</th><th>Puntuación evaluada</th><th>Logro</th><th>Lectura orientativa</th></tr></thead><tbody>" + rows.join("") + "</tbody></table>" +
-    "<div class='print-note'>Los porcentajes por criterio se calculan solo con los aspectos evaluados. Las etiquetas son orientativas y no equivalen automáticamente a niveles oficiales de adquisición competencial.</div>" +
+    "<div class='print-note'>Los porcentajes por criterio se calculan solo con los aspectos evaluados. La clasificación (Sin evaluar, En desarrollo, Logro adecuado, Logro avanzado y Logro muy alto) es orientativa y se basa en la puntuación obtenida; no equivale por sí sola al nivel de adquisición de una competencia específica.</div>" +
     "<div class='print-footer'>Informe de grupo · Una idea del Profesor Alberto Delgado</div>";
   openPrint(content, "student");
 }
