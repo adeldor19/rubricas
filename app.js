@@ -595,6 +595,75 @@ function printClassReport() {
   openPrint(content, "student");
 }
 
+function printGroupDashboard() {
+  if (!state.rubric.length || !state.students.length) {
+    notify("Carga una rúbrica y añade alumnado antes de imprimir el panel.");
+    return;
+  }
+  const criteria = [...grouped()];
+  const possible = state.students.length * state.rubric.length;
+  const assessed = state.students.reduce((sum, student) => sum + totals(student).evaluated, 0);
+  const coverage = possible ? assessed / possible * 100 : 0;
+  const criterionAnalysis = criteria.map(([criterion, items]) => {
+    const results = state.students.map(student => criterionEvidence(student, items, criterion)).filter(r => r.pct !== null);
+    const average = results.length ? results.reduce((sum, r) => sum + r.pct, 0) / results.length : null;
+    const below = results.filter(r => r.pct < 50).length;
+    const lowShare = results.length ? below / results.length : 0;
+    let status = "Sin evidencias", statusClass = "diff-limited";
+    if (results.length < 3) { status = "Muestra limitada"; statusClass = "diff-limited"; }
+    else if (average < 50 && lowShare >= 0.5) { status = "Prioridad de refuerzo"; statusClass = "diff-priority"; }
+    else if (average < 70 || lowShare >= 0.35) { status = "Revisar"; statusClass = "diff-review"; }
+    else if (average >= 75 && lowShare < 0.15) { status = "Consolidado"; statusClass = "diff-good"; }
+    else { status = "Seguimiento"; statusClass = "diff-watch"; }
+    const evaluatedAspects = results.reduce((sum, r) => sum + r.evaluated, 0);
+    const possibleAspects = state.students.length * items.length;
+    return { criterion, items, results, average, below, lowShare, evaluatedAspects, possibleAspects, status, statusClass };
+  });
+  const priorityOrder = {"Prioridad de refuerzo":0,"Revisar":1,"Seguimiento":2,"Consolidado":3,"Muestra limitada":4,"Sin evidencias":5};
+  const priorityRows = [...criterionAnalysis].sort((a, b) => {
+    const diff = priorityOrder[a.status] - priorityOrder[b.status];
+    return diff || ((a.average ?? Infinity) - (b.average ?? Infinity));
+  }).map(x => {
+    const lowText = x.results.length ? x.below + " / " + x.results.length + " (" + format(x.lowShare * 100) + "%)" : "—";
+    const averageText = x.average === null ? "—" : format(x.average) + "%";
+    const aspectCoverage = x.possibleAspects ? x.evaluatedAspects / x.possibleAspects * 100 : 0;
+    return "<tr><td><strong>" + escapeHTML(x.criterion) + "</strong></td><td>" + averageText + "</td><td>" + lowText + "</td><td>" + x.results.length + " / " + state.students.length + "</td><td>" + x.evaluatedAspects + " / " + x.possibleAspects + " (" + format(aspectCoverage) + "%)</td><td><span class='group-report-badge " + x.statusClass + "'>" + escapeHTML(x.status) + "</span></td></tr>";
+  }).join("");
+  const difficultyRows = state.students.map(student => {
+    const cells = criteria.map(([criterion, items]) => {
+      const r = criterionEvidence(student, items, criterion);
+      const cls = r.pct === null ? "grp-pending" : r.pct < 50 ? "grp-low" : r.pct < 75 ? "grp-mid" : "grp-high";
+      return "<td class='" + cls + "'><strong>" + (r.pct === null ? "Sin datos" : format(r.pct) + "%") + "</strong><small>" + r.evaluated + "/" + r.total + " aspectos</small></td>";
+    }).join("");
+    return "<tr><th>" + escapeHTML(student.name) + "</th>" + cells + "</tr>";
+  }).join("");
+  const statusRows = state.students.map(student => {
+    const cells = criteria.map(([criterion, items]) => {
+      const r = criterionEvidence(student, items, criterion);
+      const cls = r.evaluated === 0 ? "grp-pending" : r.pendingItems.length ? "grp-partial" : "grp-complete";
+      const label = r.evaluated === 0 ? "Sin evaluar" : r.pendingItems.length ? "Parcial" : "Completa";
+      return "<td class='" + cls + "'><strong>" + label + "</strong><small>" + r.evaluated + "/" + r.total + " aspectos</small></td>";
+    }).join("");
+    return "<tr><th>" + escapeHTML(student.name) + "</th>" + cells + "</tr>";
+  }).join("");
+  const criterionCoverageRows = criterionAnalysis.map(x => {
+    const mean = x.average === null ? "—" : format(x.average) + "%";
+    const coveragePct = x.possibleAspects ? x.evaluatedAspects / x.possibleAspects * 100 : 0;
+    return "<tr><td><strong>" + escapeHTML(x.criterion) + "</strong></td><td>" + x.results.length + " / " + state.students.length + "</td><td>" + mean + "</td><td>" + x.evaluatedAspects + " / " + x.possibleAspects + "</td><td>" + format(coveragePct) + "%</td></tr>";
+  }).join("");
+  const matrixHead = "<thead><tr><th>Alumno/a</th>" + criteria.map(([criterion]) => "<th>" + escapeHTML(criterion) + "</th>").join("") + "</tr></thead><tbody>";
+  const content =
+    "<div class='print-header'><div><h1>Mapa de dificultades del grupo</h1><p><strong>Grupo:</strong> " + escapeHTML(state.group || "—") + " &nbsp; · &nbsp; <strong>Actividad:</strong> " + escapeHTML(state.activity || "Rúbrica de evaluación") + " &nbsp; · &nbsp; <strong>Fecha:</strong> " + new Date().toLocaleDateString("es-ES") + "</p></div></div>" +
+    "<div class='print-grade'><div><span>ALUMNADO</span><strong>" + state.students.length + "</strong></div><div><span>EVIDENCIAS EVALUADAS</span><strong>" + assessed + " / " + possible + "</strong></div><div><span>COBERTURA GLOBAL</span><strong>" + format(coverage) + "%</strong></div></div>" +
+    "<div class='group-report-section'><h2>1. Mapa de dificultades por alumno y criterio</h2><p>Porcentaje calculado solo sobre aspectos evaluados. Los datos pendientes no se consideran suspensos.</p><table class='group-report-table group-report-matrix'>" + matrixHead + difficultyRows + "</tbody></table><div class='group-report-legend'><span class='grp-low'>Menos del 50 %</span><span class='grp-mid'>50–74 %</span><span class='grp-high'>75–100 %</span><span class='grp-pending'>Sin evidencias</span></div></div>" +
+    "<div class='group-report-section'><h2>2. Estado de evaluación por alumno y criterio</h2><p>Esta matriz distingue la cobertura de evaluación del nivel de logro.</p><table class='group-report-table group-report-matrix'>" + matrixHead + statusRows + "</tbody></table><div class='group-report-legend'><span class='grp-pending'>Sin evaluar</span><span class='grp-partial'>Evaluación parcial</span><span class='grp-complete'>Evaluación completa</span></div></div>" +
+    "<div class='group-report-section'><h2>3. Prioridades de refuerzo por criterio</h2><p>La clasificación es orientativa y combina el promedio, los resultados inferiores al 50 % y la cantidad de evidencias disponibles. Con menos de tres alumnos evaluados, la muestra se marca como limitada.</p><table class='group-report-table'><thead><tr><th>Criterio</th><th>Promedio</th><th>Resultados &lt;50 %</th><th>Alumnado con datos</th><th>Cobertura de aspectos</th><th>Lectura orientativa</th></tr></thead><tbody>" + priorityRows + "</tbody></table></div>" +
+    "<div class='group-report-section'><h2>4. Cobertura y resultados por criterio</h2><table class='group-report-table'><thead><tr><th>Criterio</th><th>Alumnado con datos</th><th>Promedio sobre lo evaluado</th><th>Aspectos evaluados</th><th>Cobertura</th></tr></thead><tbody>" + criterionCoverageRows + "</tbody></table></div>" +
+    "<div class='print-note'>Informe generado con todos los alumnos y criterios de la sesión, independientemente de los filtros activos en pantalla. Los porcentajes describen las evidencias disponibles; no sustituyen el juicio profesional del docente ni determinan automáticamente la adquisición competencial.</div>" +
+    "<div class='print-footer'>Panel de grupo · Informe para uso docente</div>";
+  openPrint(content, "group-dashboard");
+}
+
 function openPrint(content, type) {
   const existing = document.getElementById("printOverlay");
   if (existing) existing.remove();
@@ -646,7 +715,33 @@ function openPrint(content, type) {
     "#printOverlay .print-observations{margin-top:10px;padding:10px 12px;border:1px solid #d8c5c9;background:#faf8f7;break-inside:avoid}" +
     "#printOverlay .print-observations h2{font-size:10px;text-transform:uppercase;color:#542333;margin:0 0 5px}" +
     "#printOverlay .print-observations p{font-size:9px;line-height:1.4;margin:0;white-space:normal}" +
-    "@media print{body.printing>*:not(#printOverlay){display:none!important}#printOverlay{position:static!important;overflow:visible!important;padding:0!important;width:auto!important;height:auto!important}#printOverlay .print-rubric tbody tr:nth-child(even){background:#faf9f8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}#printOverlay .print-header,#printOverlay .competency-table th,#printOverlay .print-grade>div,#printOverlay .print-rubric th,#printOverlay .selected-print,#printOverlay .print-obtained,#printOverlay .print-footer{-webkit-print-color-adjust:exact;print-color-adjust:exact}}";
+
+    "#printOverlay .group-report-section{margin:12px 0 15px;break-inside:auto}" +
+    "#printOverlay .group-report-section h2{font-size:12px;color:#542333;border-bottom:2px solid #7b3045;padding-bottom:4px;margin:0 0 5px;text-transform:uppercase;letter-spacing:.35px}" +
+    "#printOverlay .group-report-section>p{font-size:8px;color:#62575a;margin:0 0 7px}" +
+    "#printOverlay .group-report-table{width:100%;border-collapse:collapse;font-size:7.5px;margin:0 0 7px}" +
+    "#printOverlay .group-report-table th,#printOverlay .group-report-table td{border:1px solid #d5cecb;padding:4px 5px;text-align:left;vertical-align:top;line-height:1.25}" +
+    "#printOverlay .group-report-table th{background:#542333;color:#fff;font-size:7px;text-transform:uppercase;letter-spacing:.15px}" +
+    "#printOverlay .group-report-matrix{table-layout:auto}" +
+    "#printOverlay .group-report-matrix th:first-child{min-width:100px;width:13%;background:#eee4df;color:#542333}" +
+    "#printOverlay .group-report-matrix td{text-align:center;min-width:55px}" +
+    "#printOverlay .group-report-table small{display:block;font-size:6.5px;margin-top:2px}" +
+    "#printOverlay .grp-low{background:#f2d9d8!important;color:#70252b}" +
+    "#printOverlay .grp-mid{background:#f3e5c9!important;color:#72501a}" +
+    "#printOverlay .grp-high{background:#d5e7dd!important;color:#235e42}" +
+    "#printOverlay .grp-pending{background:#f1f2f4!important;color:#596273}" +
+    "#printOverlay .grp-partial{background:#ead8bf!important;color:#6b4b23}" +
+    "#printOverlay .grp-complete{background:#d5e7dd!important;color:#235e42}" +
+    "#printOverlay .group-report-legend{display:flex;flex-wrap:wrap;gap:5px 10px;font-size:7px;margin:4px 0 10px}" +
+    "#printOverlay .group-report-legend span{padding:3px 6px;border-radius:3px}" +
+    "#printOverlay .group-report-badge{display:inline-block;padding:3px 5px;border-radius:3px;font-weight:800;font-size:7px}" +
+    "#printOverlay .diff-priority{background:#f2d9d8;color:#7f2028}" +
+    "#printOverlay .diff-review{background:#f3e5c9;color:#80551a}" +
+    "#printOverlay .diff-good{background:#d5e7dd;color:#235e42}" +
+    "#printOverlay .diff-limited{background:#f1f2f4;color:#596273}" +
+    "#printOverlay .diff-watch{background:#eadde1;color:#542333}" +
+
+    "@media print{#printOverlay .grp-low,#printOverlay .grp-mid,#printOverlay .grp-high,#printOverlay .grp-pending,#printOverlay .grp-partial,#printOverlay .grp-complete,#printOverlay .group-report-table th,#printOverlay .print-header,#printOverlay .print-grade>div{-webkit-print-color-adjust:exact;print-color-adjust:exact}#printOverlay .group-report-section{break-inside:auto}#printOverlay .group-report-table tr{break-inside:avoid}body.printing>*:not(#printOverlay){display:none!important}#printOverlay{position:static!important;overflow:visible!important;padding:0!important;width:auto!important;height:auto!important}#printOverlay .print-rubric tbody tr:nth-child(even){background:#faf9f8!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}#printOverlay .print-header,#printOverlay .competency-table th,#printOverlay .print-grade>div,#printOverlay .print-rubric th,#printOverlay .selected-print,#printOverlay .print-obtained,#printOverlay .print-footer{-webkit-print-color-adjust:exact;print-color-adjust:exact}}";
 
   document.head.appendChild(style);
 
@@ -708,6 +803,7 @@ function setup() {
   $("#cancelStudentListBtn").onclick=()=>{$("#studentListInput").classList.add("hidden");$("#studentPasteActions").classList.add("hidden")};
   $("#saveStudentListBtn").onclick=()=>{clean($("#studentListInput").value).split("\n").map(clean).filter(Boolean).forEach(addStudent);$("#studentListInput").value="";$("#studentListInput").classList.add("hidden");$("#studentPasteActions").classList.add("hidden");renderStudents()};
   $("#blankPdfBtn").onclick=printBlankRubric;
+  $("#printDashboardBtn").onclick=printGroupDashboard;
   $("#fullModeBtn").onclick=()=>{state.mode="full";renderEvaluation()};
   $("#quickModeBtn").onclick=()=>{state.mode="quick";state.quick=0;renderEvaluation()};
   $("#resultsBtn").onclick=()=>{state.mode="results";renderEvaluation()};
