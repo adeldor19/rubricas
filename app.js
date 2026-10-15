@@ -637,14 +637,19 @@ function printGroupDashboard() {
     }).join("");
     return "<tr><th>" + escapeHTML(student.name) + "</th>" + cells + "</tr>";
   }).join("");
-  const statusRows = state.students.map(student => {
-    const cells = criteria.map(([criterion, items]) => {
-      const r = criterionEvidence(student, items, criterion);
-      const cls = r.evaluated === 0 ? "grp-pending" : r.pendingItems.length ? "grp-partial" : "grp-complete";
-      const label = r.evaluated === 0 ? "Sin evaluar" : r.pendingItems.length ? "Parcial" : "Completa";
-      return "<td class='" + cls + "'><strong>" + label + "</strong><small>" + r.evaluated + "/" + r.total + " aspectos</small></td>";
-    }).join("");
-    return "<tr><th>" + escapeHTML(student.name) + "</th>" + cells + "</tr>";
+  const distributionRows = criterionAnalysis.map(x => {
+    const evaluated = x.results.length;
+    const low = x.results.filter(r => r.pct < 50).length;
+    const mid = x.results.filter(r => r.pct >= 50 && r.pct < 75).length;
+    const high = x.results.filter(r => r.pct >= 75).length;
+    const share = count => evaluated ? count / evaluated * 100 : 0;
+    const cell = (count, cls) => evaluated
+      ? "<td class='" + cls + "'><strong>" + count + " / " + evaluated + "</strong><small>" + format(share(count)) + "%</small></td>"
+      : "<td class='grp-pending'>—<small>Sin datos</small></td>";
+    const bar = evaluated
+      ? "<div class='group-distribution-bar' aria-label='Distribución de resultados'><span class='grp-low' style='width:" + share(low) + "%'></span><span class='grp-mid' style='width:" + share(mid) + "%'></span><span class='grp-high' style='width:" + share(high) + "%'></span></div>"
+      : "<span class='group-distribution-empty'>Sin alumnado evaluado</span>";
+    return "<tr><th>" + escapeHTML(x.criterion) + "</th>" + cell(low, "grp-low") + cell(mid, "grp-mid") + cell(high, "grp-high") + "<td class='group-distribution-cell'>" + bar + "</td></tr>";
   }).join("");
   const criterionCoverageRows = criterionAnalysis.map(x => {
     const mean = x.average === null ? "—" : format(x.average) + "%";
@@ -656,7 +661,7 @@ function printGroupDashboard() {
     "<div class='print-header'><div><h1>Mapa de dificultades del grupo</h1><p><strong>Grupo:</strong> " + escapeHTML(state.group || "—") + " &nbsp; · &nbsp; <strong>Actividad:</strong> " + escapeHTML(state.activity || "Rúbrica de evaluación") + " &nbsp; · &nbsp; <strong>Fecha:</strong> " + new Date().toLocaleDateString("es-ES") + "</p></div></div>" +
     "<div class='print-grade'><div><span>ALUMNADO</span><strong>" + state.students.length + "</strong></div><div><span>EVIDENCIAS EVALUADAS</span><strong>" + assessed + " / " + possible + "</strong></div><div><span>COBERTURA GLOBAL</span><strong>" + format(coverage) + "%</strong></div></div>" +
     "<div class='group-report-section'><h2>1. Mapa de dificultades por alumno y criterio</h2><p>Porcentaje calculado solo sobre aspectos evaluados. Los datos pendientes no se consideran suspensos.</p><table class='group-report-table group-report-matrix'>" + matrixHead + difficultyRows + "</tbody></table><div class='group-report-legend'><span class='grp-low'>Menos del 50 %</span><span class='grp-mid'>50–74 %</span><span class='grp-high'>75–100 %</span><span class='grp-pending'>Sin evidencias</span></div></div>" +
-    "<div class='group-report-section'><h2>2. Estado de evaluación por alumno y criterio</h2><p>Esta matriz distingue la cobertura de evaluación del nivel de logro.</p><table class='group-report-table group-report-matrix'>" + matrixHead + statusRows + "</tbody></table><div class='group-report-legend'><span class='grp-pending'>Sin evaluar</span><span class='grp-partial'>Evaluación parcial</span><span class='grp-complete'>Evaluación completa</span></div></div>" +
+    "<div class='group-report-section'><h2>2. Distribución de resultados por criterio</h2><p>Porcentaje del alumnado con evidencias evaluadas en cada criterio. Las franjas son: menos del 50 %, del 50 % a menos del 75 % y 75 % o más. El alumnado sin datos no entra en el cálculo.</p><table class='group-report-table group-distribution-table'><thead><tr><th>Criterio</th><th>Menos del 50 %</th><th>50–74 %</th><th>75–100 %</th><th>Distribución del alumnado evaluado</th></tr></thead><tbody>" + distributionRows + "</tbody></table><div class='group-report-legend'><span class='grp-low'>Menos del 50 %</span><span class='grp-mid'>50–74 %</span><span class='grp-high'>75 % o más</span></div></div>" +
     "<div class='group-report-section'><h2>3. Prioridades de refuerzo por criterio</h2><p>La clasificación es orientativa y combina el promedio, los resultados inferiores al 50 % y la cantidad de evidencias disponibles. Con menos de tres alumnos evaluados, la muestra se marca como limitada.</p><table class='group-report-table'><thead><tr><th>Criterio</th><th>Promedio</th><th>Resultados &lt;50 %</th><th>Alumnado con datos</th><th>Cobertura de aspectos</th><th>Lectura orientativa</th></tr></thead><tbody>" + priorityRows + "</tbody></table></div>" +
     "<div class='group-report-section'><h2>4. Cobertura y resultados por criterio</h2><table class='group-report-table'><thead><tr><th>Criterio</th><th>Alumnado con datos</th><th>Promedio sobre lo evaluado</th><th>Aspectos evaluados</th><th>Cobertura</th></tr></thead><tbody>" + criterionCoverageRows + "</tbody></table></div>" +
     "<div class='print-note'>Informe generado con todos los alumnos y criterios de la sesión, independientemente de los filtros activos en pantalla. Los porcentajes describen las evidencias disponibles; no sustituyen el juicio profesional del docente ni determinan automáticamente la adquisición competencial.</div>" +
@@ -725,6 +730,13 @@ function openPrint(content, type) {
     "#printOverlay .group-report-matrix{table-layout:auto}" +
     "#printOverlay .group-report-matrix th:first-child{min-width:100px;width:13%;background:#eee4df;color:#542333}" +
     "#printOverlay .group-report-matrix td{text-align:center;min-width:55px}" +
+    "#printOverlay .group-distribution-table th:first-child{width:18%;background:#eee4df;color:#542333}" +
+    "#printOverlay .group-distribution-table td{text-align:center;vertical-align:middle}" +
+    "#printOverlay .group-distribution-table td small{font-size:7px}" +
+    "#printOverlay .group-distribution-cell{width:30%;min-width:120px}" +
+    "#printOverlay .group-distribution-bar{display:flex;width:100%;height:15px;overflow:hidden;border-radius:3px;background:#f1f2f4;border:1px solid #d5cecb}" +
+    "#printOverlay .group-distribution-bar span{display:block;height:100%;min-width:0}" +
+    "#printOverlay .group-distribution-empty{font-size:7px;color:#596273}" +
     "#printOverlay .group-report-table small{display:block;font-size:6.5px;margin-top:2px}" +
     "#printOverlay .grp-low{background:#f2d9d8!important;color:#70252b}" +
     "#printOverlay .grp-mid{background:#f3e5c9!important;color:#72501a}" +
