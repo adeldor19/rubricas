@@ -576,6 +576,35 @@ function printStudentRubric() {
     notify("Error al generar el PDF: " + (error.message || "revisa la consola"));
   }
 }
+
+function printAllStudentRubrics() {
+  if (!state.rubric.length || !state.students.length) { notify("Carga una rúbrica y añade alumnado antes de generar el PDF."); return; }
+  const includeSummary = $("#batchPdfIncludeSummary").checked;
+  const includeRubric = $("#batchPdfIncludeRubric").checked;
+  const sortMode = $("#batchPdfOrder").value;
+  if (!includeSummary && !includeRubric) { notify("Selecciona al menos una parte de la rúbrica para imprimir."); return; }
+  const students = [...state.students];
+  if (sortMode === "alpha") students.sort((a,b) => a.name.localeCompare(b.name, "es", {sensitivity:"base"}));
+  const reports = students.map((student, index) => {
+    const sel = selections(student), t = totals(student);
+    const criterionRows = [...grouped()].map(([criterion, items]) => {
+      const result = criterionEvidence(student, items, criterion);
+      return "<tr><td><strong>" + escapeHTML(criterion) + "</strong></td><td>" + result.evaluated + " / " + result.total + "</td><td>" + format(result.got) + " / " + format(result.maxEvaluated) + "</td><td>" + (result.pct === null ? "—" : format(result.pct) + "%") + "</td><td>" + escapeHTML(result.status) + "</td></tr>";
+    }).join("");
+    const rows = state.rubric.map(q => {
+      const level = sel.get(q.id);
+      const cells = q.levels.map(item => "<td class='" + (level?.key === item.key ? "selected-print" : "") + "'>" + (level?.key === item.key ? "✓ " : "") + format(item.points) + " pt</td>").join("");
+      return "<tr><td><strong>" + escapeHTML(q.criterion) + "</strong></td><td>" + escapeHTML(q.question) + "<br><small>" + escapeHTML(q.aspect) + "</small></td>" + cells + "<td class='print-obtained'>" + (level ? format(level.points) : "—") + " / " + format(q.max) + "</td></tr>";
+    }).join("");
+    const summarySection = includeSummary ? "<div class='competency-title'><h2>Resumen por criterio de evaluación</h2></div><table class='competency-table'><thead><tr><th>Criterio</th><th>Evidencias</th><th>Puntuación evaluada</th><th>Logro</th><th>Lectura orientativa</th></tr></thead><tbody>" + criterionRows + "</tbody></table><p class='print-note'>El porcentaje refleja únicamente los aspectos evaluados y no determina por sí solo el nivel de adquisición de una competencia específica.</p>" : "";
+    const rubricSection = includeRubric ? "<div class='competency-title'><h2>Detalle de la rúbrica</h2></div><table class='print-rubric'><thead><tr><th>Criterio</th><th>Pregunta / aspecto evaluado</th><th>0%</th><th>25%</th><th>50%</th><th>75%</th><th>100%</th><th>Obtenido</th></tr></thead><tbody>" + rows + "</tbody></table>" : "";
+    const pendingNote = t.evaluated < t.total ? "<p class='print-note'>Resultado provisional: quedan " + (t.total - t.evaluated) + " aspectos sin evaluar. En el resultado global, los aspectos pendientes todavía no suman puntos.</p>" : "";
+    return "<div class='student-report-page" + (index ? " student-report-next-page" : "") + "'><div class='print-header'><div><h1>" + (state.activity ? escapeHTML(state.activity) : "Informe individual de evaluación") + "</h1><p><strong>Alumno/a:</strong> " + escapeHTML(student.name) + " &nbsp; · &nbsp; <strong>Grupo:</strong> " + escapeHTML(state.group || "—") + " &nbsp; · &nbsp; <strong>Alumno/a " + (index + 1) + " de " + students.length + "</strong></p></div></div>" +
+      "<div class='print-grade'><div><span>RESULTADO</span><strong>" + format(t.got) + " / " + format(t.max) + "</strong></div><div><span>NOTA PROVISIONAL / 10</span><strong>" + format(t.pct / 10) + " / 10</strong></div><div><span>EVALUACIÓN</span><strong>" + t.evaluated + " / " + t.total + "</strong></div></div>" + pendingNote + summarySection + rubricSection + "<div class='print-footer'>Informe generado desde la rúbrica · " + escapeHTML(student.name) + "</div></div>";
+  }).join("");
+  openPrint(reports, "all-students");
+}
+
 function printClassReport() {
   if (!state.students.length) { notify("Añade alumnado antes de generar el informe del grupo."); return; }
   const rows = [];
@@ -720,6 +749,7 @@ function openPrint(content, type) {
     "#printOverlay .print-observations{margin-top:10px;padding:10px 12px;border:1px solid #d8c5c9;background:#faf8f7;break-inside:avoid}" +
     "#printOverlay .print-observations h2{font-size:10px;text-transform:uppercase;color:#542333;margin:0 0 5px}" +
     "#printOverlay .print-observations p{font-size:9px;line-height:1.4;margin:0;white-space:normal}" +
+    "#printOverlay .student-report-next-page{break-before:page;page-break-before:always}" +
 
     "#printOverlay .group-report-section{margin:12px 0 15px;break-inside:auto}" +
     "#printOverlay .group-report-section h2{font-size:12px;color:#542333;border-bottom:2px solid #7b3045;padding-bottom:4px;margin:0 0 5px;text-transform:uppercase;letter-spacing:.35px}" +
@@ -815,6 +845,7 @@ function setup() {
   $("#cancelStudentListBtn").onclick=()=>{$("#studentListInput").classList.add("hidden");$("#studentPasteActions").classList.add("hidden")};
   $("#saveStudentListBtn").onclick=()=>{clean($("#studentListInput").value).split("\n").map(clean).filter(Boolean).forEach(addStudent);$("#studentListInput").value="";$("#studentListInput").classList.add("hidden");$("#studentPasteActions").classList.add("hidden");renderStudents()};
   $("#blankPdfBtn").onclick=printBlankRubric;
+  $("#batchPdfBtn").onclick=printAllStudentRubrics;
   $("#printDashboardBtn").onclick=printGroupDashboard;
   $("#fullModeBtn").onclick=()=>{state.mode="full";renderEvaluation()};
   $("#quickModeBtn").onclick=()=>{state.mode="quick";state.quick=0;renderEvaluation()};
