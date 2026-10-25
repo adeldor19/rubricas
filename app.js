@@ -845,6 +845,7 @@ function setup() {
   $("#cancelStudentListBtn").onclick=()=>{$("#studentListInput").classList.add("hidden");$("#studentPasteActions").classList.add("hidden")};
   $("#saveStudentListBtn").onclick=()=>{clean($("#studentListInput").value).split("\n").map(clean).filter(Boolean).forEach(addStudent);$("#studentListInput").value="";$("#studentListInput").classList.add("hidden");$("#studentPasteActions").classList.add("hidden");renderStudents()};
   $("#blankPdfBtn").onclick=printBlankRubric;
+  $("#exportBackupBtn").onclick=downloadJSON;
   $("#batchPdfBtn").onclick=printAllStudentRubrics;
   $("#printDashboardBtn").onclick=printGroupDashboard;
   $("#fullModeBtn").onclick=()=>{state.mode="full";renderEvaluation()};
