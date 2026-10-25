@@ -35,7 +35,7 @@
 
 <section id="classView" class="view hidden">
   <div class="page-title"><div><span class="eyebrow">GESTIÓN DE ALUMNADO</span><h1>Tu clase</h1><p id="classSubtitle"></p></div><div class="button-row"><button id="addStudentBtn" class="primary-btn">+ Añadir alumno</button><button id="pasteStudentsBtn" class="ghost-btn">Pegar lista</button></div></div>
-  <div class="card class-tools"><div class="button-row print-actions"><button id="blankPdfBtn" class="ghost-btn">🖨️ Descargar rúbrica en blanco (PDF)</button><button id="exportBackupBtn" class="ghost-btn">💾 Descargar copia completa (JSON)</button></div><p class="backup-help">La copia incluye la rúbrica, el grupo, la actividad, el alumnado y todas las evaluaciones. Este archivo está preparado para una futura opción de carga o restauración.</p>
+  <div class="card class-tools"><div class="button-row print-actions"><button id="blankPdfBtn" class="ghost-btn">🖨️ Descargar rúbrica en blanco (PDF)</button><button id="exportBackupBtn" class="ghost-btn">💾 Descargar copia completa (JSON)</button><button id="importBackupBtn" class="ghost-btn">📂 Cargar datos (JSON)</button><input id="importBackupFile" type="file" accept=".json,application/json" class="hidden"></div><p class="backup-help">Descarga una copia para guardarla o trasladarla a otro dispositivo. Al cargar un archivo, se sustituirá la sesión actual solo después de confirmar la operación.</p>
     <div class="batch-pdf-panel">
       <div><h2>Imprimir todas las rúbricas</h2><p>Genera un único PDF con una ficha por alumno, en el orden que elijas.</p></div>
       <div class="report-options batch-pdf-options">
@@ -186,5 +186,5 @@ Antes de entregar el CSV, verifica:
   </div>
 </section></main>
 <footer class="site-footer">Una idea del Profesor Alberto Delgado</footer><div id="printArea"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="app.js?v=20261025-19"></script>
+<script src="app.js?v=20261025-20"></script>
 </body></html>
