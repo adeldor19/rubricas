@@ -800,6 +800,54 @@ function openPrint(content, type) {
 function downloadJSON() {
   download("rubricas_sesion.json",JSON.stringify({version:3,exportedAt:new Date().toISOString(),csv:$("#csvInput").value,rubric:state.rubric,students:state.students,active:state.active,group:state.group,activity:state.activity},null,2),"application/json;charset=utf-8");
 }
+function importBackupData(data) {
+  if (!data || typeof data !== "object" || !Array.isArray(data.rubric) || !Array.isArray(data.students)) {
+    throw new Error("El archivo no contiene una copia de seguridad válida de Rúbricas.");
+  }
+  if (!data.rubric.length) throw new Error("La copia no contiene ninguna pregunta de rúbrica.");
+  const validQuestions = data.rubric.every(q =>
+    q && typeof q.id === "string" && typeof q.criterion === "string" &&
+    typeof q.question === "string" && typeof q.aspect === "string" &&
+    Array.isArray(q.levels) && q.levels.length > 0 &&
+    q.levels.every(l => l && typeof l.key === "string" && typeof l.label === "string" && Number.isFinite(Number(l.points)))
+  );
+  const validStudents = data.students.every(st =>
+    st && typeof st.id === "string" && typeof st.name === "string" && Array.isArray(st.selections)
+  );
+  if (!validQuestions || !validStudents) throw new Error("La estructura de la copia está incompleta o dañada.");
+  const rubricIds = new Set(data.rubric.map(q => q.id));
+  const students = data.students.map(st => ({
+    id: st.id,
+    name: clean(st.name),
+    selections: st.selections.filter(pair => Array.isArray(pair) && rubricIds.has(pair[0]) && pair[1] && typeof pair[1] === "object")
+  }));
+  if (students.some(st => !st.name)) throw new Error("La copia contiene algún alumno sin nombre.");
+  state.rubric = data.rubric;
+  state.students = students;
+  state.active = students.some(st => st.id === data.active) ? data.active : (students[0]?.id || null);
+  state.group = clean(data.group);
+  state.activity = clean(data.activity);
+  state.quick = 0;
+  $("#csvInput").value = typeof data.csv === "string" ? data.csv : "";
+  save();
+  $("#classNav").classList.remove("hidden");
+  $("#dashboardNav").classList.remove("hidden");
+  renderStudents();
+  view("classView");
+  notify("Copia cargada correctamente · " + state.students.length + " alumnos");
+}
+async function handleBackupFile(file) {
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!confirm("Vas a sustituir la rúbrica, el grupo, el alumnado y todas las evaluaciones de esta sesión por los datos del archivo seleccionado. Esta acción no se puede deshacer. ¿Quieres continuar?")) return;
+    importBackupData(data);
+  } catch (error) {
+    notify(error instanceof SyntaxError ? "El archivo no es un JSON válido." : (error.message || "No se ha podido cargar la copia."));
+  } finally {
+    $("#importBackupFile").value = "";
+  }
+}
 function loadRubric() {
   const validation = validateCSV($("#csvInput").value);
   renderValidation(validation);
@@ -846,6 +894,8 @@ function setup() {
   $("#saveStudentListBtn").onclick=()=>{clean($("#studentListInput").value).split("\n").map(clean).filter(Boolean).forEach(addStudent);$("#studentListInput").value="";$("#studentListInput").classList.add("hidden");$("#studentPasteActions").classList.add("hidden");renderStudents()};
   $("#blankPdfBtn").onclick=printBlankRubric;
   $("#exportBackupBtn").onclick=downloadJSON;
+  $("#importBackupBtn").onclick=()=>$("#importBackupFile").click();
+  $("#importBackupFile").onchange=e=>handleBackupFile(e.target.files?.[0]);
   $("#batchPdfBtn").onclick=printAllStudentRubrics;
   $("#printDashboardBtn").onclick=printGroupDashboard;
   $("#fullModeBtn").onclick=()=>{state.mode="full";renderEvaluation()};
